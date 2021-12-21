@@ -361,9 +361,8 @@ class ChessClient:
         else:
             print("Token is None")
 
-    def setup_engine(self, engine):
-        socket = config['machines_info'][engine]['ws']
-        asyncio.run(self.configure_engine(socket))
+    def setup_engine(self, url):
+        asyncio.run(self.configure_engine(url))
 
     def parallel_run(self, *ins):
         proc = []
@@ -376,9 +375,9 @@ class ChessClient:
 
     def setup_engines(self):
         engines = []
-        for engine, ip in enumerate(config['machines_info']):
-            XD = ip['url']
-            engines.append(Process(target=self.setup_engine, args=tuple([engine])))
+        for engine, ws in enumerate(config['ws_info']):
+            url = ws['url']
+            engines.append(Process(target=self.setup_engine, args=tuple([url])))
 
         self.parallel_run(engines)
 
