@@ -3,6 +3,7 @@ import requests
 import json
 import asyncio
 from websockets import connect
+from multiprocessing import Process
 
 
 class ChessClient:
@@ -278,7 +279,7 @@ class ChessClient:
 
     ''' WEBSOCKETS COMMUNICATION '''
 
-    async def hello(self):
+    async def hello(self):#todo needed?
         if self.token is not None:
             try:
                 async with connect(config['uciServerWS'],
@@ -306,18 +307,18 @@ class ChessClient:
                         if message == 'readyok':
                             break
 
-                    await websocket.send(f"position startpos moves {config['movesNum']}")
-                    await websocket.send("go movetime 5000")
-
-                    info = []
-                    while True:
-                        await websocket.recv()
-                        async for message in websocket:
-                            info.append(message)
-                            print(message)
-                            if 'bestmove' in message:
-                                print(info[-3:-1])
-                                return info[-3:-1]
+                    # await websocket.send(f"position startpos moves {config['movesNum']}")
+                    # await websocket.send("go movetime 5000")
+                    #
+                    # info = []
+                    # while True:
+                    #     await websocket.recv()
+                    #     async for message in websocket:
+                    #         info.append(message)
+                    #         print(message)
+                    #         if 'bestmove' in message:
+                    #             print(info[-3:-1])
+                    #             return info[-3:-1]
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -325,5 +326,63 @@ class ChessClient:
         else:
             print("Token is None")
 
-    def talk(self):
+    async def configure_engine(self, socket):
+        if self.token is not None:
+            try:
+                async with connect(socket,
+                                   extra_headers={"Authorization": f"Bearer {self.token}"}) as websocket:
+                    await websocket.send("uci")
+                    while True:
+                        message = await websocket.recv()
+                        print(message)
+                        if message == 'uciok':
+                            break
+
+                    await websocket.send(f"setoption name MultiPV value {config['movesNum']}")
+                    await websocket.send("isready")
+                    while True:
+                        print(message)
+                        message = await websocket.recv()
+                        if message == 'readyok':
+                            break
+
+                    await websocket.send("ucinewgame")
+                    await websocket.send("isready")
+                    while True:
+                        message = await websocket.recv()
+                        print(message)
+                        if message == 'readyok':
+                            break
+
+            except KeyError:
+                print("Key error")
+            except requests.exceptions.ConnectionError:
+                print("Connection error")
+        else:
+            print("Token is None")
+
+    def setup_engine(self, engine):
+        socket = config['machines_info'][engine]['ws']
+        asyncio.run(self.configure_engine(socket))
+
+    def parallel_run(self, *ins):
+        proc = []
+        for p in ins:
+            for pp in p:
+                pp.start()
+                proc.append(pp)
+        for p in proc:
+            p.join()
+
+    def setup_engines(self):
+        engines = []
+        for engine, ip in enumerate(config['machines_info']):
+            XD = ip['url']
+            engines.append(Process(target=self.setup_engine, args=tuple([engine])))
+
+        self.parallel_run(engines)
+
+    def talk(self):#todo needed?
         asyncio.run(self.hello())
+
+    # todo implementacja prostego rozproszenia - tutaj?
