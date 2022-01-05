@@ -279,53 +279,6 @@ class ChessClient:
 
     ''' WEBSOCKETS COMMUNICATION '''
 
-    async def hello(self):#todo needed?
-        if self.token is not None:
-            try:
-                async with connect(config['uciServerWS'],
-                                   extra_headers={"Authorization": f"Bearer {self.token}"}) as websocket:
-                    await websocket.send("uci")
-                    while True:
-                        message = await websocket.recv()
-                        print(message)
-                        if message == 'uciok':
-                            break
-
-                    await websocket.send(f"setoption name MultiPV value {config['movesNum']}")
-                    await websocket.send("isready")
-                    while True:
-                        print(message)
-                        message = await websocket.recv()
-                        if message == 'readyok':
-                            break
-
-                    await websocket.send("ucinewgame")
-                    await websocket.send("isready")
-                    while True:
-                        message = await websocket.recv()
-                        print(message)
-                        if message == 'readyok':
-                            break
-
-                    # await websocket.send(f"position startpos moves {config['movesNum']}")
-                    # await websocket.send("go movetime 5000")
-                    #
-                    # info = []
-                    # while True:
-                    #     await websocket.recv()
-                    #     async for message in websocket:
-                    #         info.append(message)
-                    #         print(message)
-                    #         if 'bestmove' in message:
-                    #             print(info[-3:-1])
-                    #             return info[-3:-1]
-            except KeyError:
-                print("Key error")
-            except requests.exceptions.ConnectionError:
-                print("Connection error")
-        else:
-            print("Token is None")
-
     async def configure_engine(self, socket):
         if self.token is not None:
             try:
@@ -353,7 +306,18 @@ class ChessClient:
                         print(message)
                         if message == 'readyok':
                             break
-
+            # await websocket.send(f"position startpos moves {config['movesNum']}")
+            # await websocket.send("go movetime 5000")
+            #
+            # info = []
+            # while True:
+            #     await websocket.recv()
+            #     async for message in websocket:
+            #         info.append(message)
+            #         print(message)
+            #         if 'bestmove' in message:
+            #             print(info[-3:-1])
+            #             return info[-3:-1]
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -361,27 +325,69 @@ class ChessClient:
         else:
             print("Token is None")
 
-    def setup_engine(self, url):
-        asyncio.run(self.configure_engine(url))
+    # https://stackoverflow.com/questions/49858021/listen-to-multiple-socket-with-websockets-and-asyncio
+    async def distibute_processing(self):
+        loop = asyncio.get_event_loop()
+        tasks = []
+        for engine, url in enumerate(config['socket_ips']):
+            tasks.append(loop.create_task(self.configure_engine(url)))
 
-    def parallel_run(self, *ins):
-        proc = []
-        for p in ins:
-            for pp in p:
-                pp.start()
-                proc.append(pp)
-        for p in proc:
-            p.join()
+        await asyncio.gather(*tasks)
 
-    def setup_engines(self):
-        engines = []
-        for engine, ws in enumerate(config['ws_info']):
-            url = ws['url']
-            engines.append(Process(target=self.setup_engine, args=tuple([url])))
-
-        self.parallel_run(engines)
-
-    def talk(self):#todo needed?
-        asyncio.run(self.hello())
+    def parallelize(self):
+        asyncio.run(self.distibute_processing())
 
     # todo implementacja prostego rozproszenia - tutaj?
+
+    async def get_moves(self, socket=None):
+        if socket is None:
+            socket = config['socket_ips'][0]
+        if self.token is not None:
+            try:
+                async with connect(socket,
+                                   extra_headers={"Authorization": f"Bearer {self.token}"}) as websocket:
+                    await websocket.send("uci")
+                    while True:
+                        message = await websocket.recv()
+                        print(message)
+                        if message == 'uciok':
+                            break
+
+                    await websocket.send(f"setoption name MultiPV value {config['movesNum']}")
+                    await websocket.send("isready")
+                    while True:
+                        print(message)
+                        message = await websocket.recv()
+                        if message == 'readyok':
+                            break
+
+                    await websocket.send("ucinewgame")
+                    await websocket.send("isready")
+                    while True:
+                        message = await websocket.recv()
+                        print(message)
+                        if message == 'readyok':
+                            break
+
+                    await websocket.send(f"position startpos moves {config['movesNum']}")
+                    await websocket.send("go depth 10")
+
+                    info = []
+                    while True:
+                        await websocket.recv()
+                        async for message in websocket:
+                            info.append(message)
+                            print(message)
+                            if 'bestmove' in message:
+                                print(info[-(config['movesNum'] + 1):-1])
+            except KeyError:
+                print("Key error")
+            except requests.exceptions.ConnectionError:
+                print("Connection error")
+        else:
+            print("Token is None")
+
+    def get_best_moves(self, socket=None):
+        # loop = asyncio.get_event_loop()
+        # bruh = asyncio.create_task(self.get_moves(socket))
+        asyncio.run(self.get_moves(socket))
