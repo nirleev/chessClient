@@ -279,7 +279,7 @@ class ChessClient:
 
     ''' WEBSOCKETS COMMUNICATION '''
 
-    async def configure_engine(self, socket):
+    async def move_eval(self, socket, moves):
         if self.token is not None:
             try:
                 async with connect(socket,
@@ -291,7 +291,7 @@ class ChessClient:
                         if message == 'uciok':
                             break
 
-                    await websocket.send(f"setoption name MultiPV value {config['movesNum']}")
+                    await websocket.send("setoption name MultiPV value 1")
                     await websocket.send("isready")
                     while True:
                         print(message)
@@ -306,18 +306,18 @@ class ChessClient:
                         print(message)
                         if message == 'readyok':
                             break
-            # await websocket.send(f"position startpos moves {config['movesNum']}")
-            # await websocket.send("go movetime 5000")
-            #
-            # info = []
-            # while True:
-            #     await websocket.recv()
-            #     async for message in websocket:
-            #         info.append(message)
-            #         print(message)
-            #         if 'bestmove' in message:
-            #             print(info[-3:-1])
-            #             return info[-3:-1]
+                    await websocket.send(f"position startpos moves {config['movesNum']}")
+                    await websocket.send(f"go movetime 15000 searchmoves {moves}")
+
+                    info = []
+                    while True:
+                        await websocket.recv()
+                        async for message in websocket:
+                            info.append(message)
+                            print(message)
+                            if 'bestmove' in message:
+                                print(f"this --- {info[-2]}")
+                                return info[-2]
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -326,18 +326,25 @@ class ChessClient:
             print("Token is None")
 
     # https://stackoverflow.com/questions/49858021/listen-to-multiple-socket-with-websockets-and-asyncio
-    async def distibute_processing(self):
+    async def distibute_processing(self, moves):
         loop = asyncio.get_event_loop()
         tasks = []
+        prev_step = 0
+        step = len(moves) // len(config['socket_ips'])
+        next = step
         for engine, url in enumerate(config['socket_ips']):
-            tasks.append(loop.create_task(self.configure_engine(url)))
+            mvs = ''
+            for m in moves[prev_step:next]:
+                mvs += f"{m} "
+                #todo may go out of bouds or not take a move into account?
+            tasks.append(loop.create_task(self.move_eval(url, mvs)))
+            prev_step += step
+            next += step
 
         await asyncio.gather(*tasks)
 
-    def parallelize(self):
-        asyncio.run(self.distibute_processing())
-
-    # todo implementacja prostego rozproszenia - tutaj?
+    def parallelize(self, moves):
+        asyncio.run(self.distibute_processing(moves))
 
     async def get_moves(self, socket=None):
         if socket is None:
@@ -380,6 +387,7 @@ class ChessClient:
                             print(message)
                             if 'bestmove' in message:
                                 print(info[-(config['movesNum'] + 1):-1])
+                                return info[-(config['movesNum'] + 1):-1]
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -388,6 +396,20 @@ class ChessClient:
             print("Token is None")
 
     def get_best_moves(self, socket=None):
-        # loop = asyncio.get_event_loop()
-        # bruh = asyncio.create_task(self.get_moves(socket))
-        asyncio.run(self.get_moves(socket))
+        strings = asyncio.run(self.get_moves(socket))
+        moves_cps = {}
+        for move in strings:
+            moves_cps[move.split()[21]] = move.split()[9]
+        best_cp = list(moves_cps.values())[0]
+
+        moves = []
+        for cp, move in zip(moves_cps.values(), moves_cps.keys()):
+            if abs(int(best_cp) - int(cp)) > 100 and len(moves) > len(config['socket_ips']):
+                break
+            moves.append(move)
+
+        return moves
+
+    def best_move(self):
+        moves = self.get_best_moves()
+        self.parallelize(moves)

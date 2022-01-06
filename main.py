@@ -9,7 +9,8 @@ def run():
     chess_client.start_chess_servers_engines()
 
     # chess_client.parallelize()
-    chess_client.get_best_moves()
+    # best_moves = chess_client.get_best_moves()
+    chess_client.best_move()
     chess_client.delete_chess_servers()
 
     chess_client.logout()
