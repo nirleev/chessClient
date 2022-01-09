@@ -9,6 +9,7 @@ from multiprocessing import Process
 class ChessClient:
     def __init__(self):
         self.token = None
+        self.main_server = None
 
     ''' USER METHODS '''
 
@@ -317,7 +318,7 @@ class ChessClient:
                             print(message)
                             if 'bestmove' in message:
                                 print(f"this --- {info[-2]}")
-                                top_moves.append(info[-2])
+                                top_moves[socket] = info[-2]
                                 return
             except KeyError:
                 print("Key error")
@@ -327,7 +328,7 @@ class ChessClient:
             print("Token is None")
 
     # https://stackoverflow.com/questions/49858021/listen-to-multiple-socket-with-websockets-and-asyncio
-    async def distibute_processing(self, moves, top_moves):
+    async def distribute_processing(self, moves, top_moves):
         loop = asyncio.get_event_loop()
         tasks = []
         prev_step = 0
@@ -345,14 +346,14 @@ class ChessClient:
         await asyncio.gather(*tasks)
 
     def parallelize(self, moves, top_moves):
-        asyncio.run(self.distibute_processing(moves, top_moves))
+        asyncio.run(self.distribute_processing(moves, top_moves))
 
-    async def get_moves(self, socket=None):
-        if socket is None:
-            socket = config['socket_ips'][0]
+    async def get_moves(self):
+        if self.main_server is None:
+            self.main_server = config['socket_ips'][0]
         if self.token is not None:
             try:
-                async with connect(socket,
+                async with connect(self.main_server,
                                    extra_headers={"Authorization": f"Bearer {self.token}"}) as websocket:
                     await websocket.send("uci")
                     while True:
@@ -396,8 +397,9 @@ class ChessClient:
         else:
             print("Token is None")
 
-    def get_best_moves(self, socket=None):
-        strings = asyncio.run(self.get_moves(socket))
+    # get a list of all possible moves in this position (centi-pawn range from best to worst within 100)
+    def get_best_moves(self):
+        strings = asyncio.run(self.get_moves())
         moves_cps = {}
         for move in strings:
             moves_cps[move.split()[21]] = move.split()[9]
@@ -413,11 +415,14 @@ class ChessClient:
 
     def best_move(self):
         moves = self.get_best_moves()
-        top_moves = []
+        top_moves = {}
         self.parallelize(moves, top_moves)
         out = {}
         for move in top_moves:
-            out[move.split()[21]] = move.split()[9]
+            out[move.split()[21]] = (move.split()[9], top_moves[move])
 
+        #todo check if this works with tuple as top_moves' value
         out = sorted(out.items(), key=lambda x: x[1], reverse=True)
         print(out[0][0])
+        self.main_server = out[0][1]
+        return out[0][0]
