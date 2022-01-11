@@ -318,7 +318,7 @@ class ChessClient:
                             print(message)
                             if 'bestmove' in message:
                                 print(f"this --- {info[-2]}")
-                                top_moves[socket] = info[-2]
+                                top_moves[info[-2]] = socket
                                 return
             except KeyError:
                 print("Key error")
@@ -418,19 +418,19 @@ class ChessClient:
         top_moves = {}
         self.parallelize(moves, top_moves)
         out = {}
-        for move in top_moves:
+        for move in top_moves.keys():
             out[move.split()[21]] = (move.split()[9], top_moves[move])
 
-        # todo check if this works with tuple as top_moves' value
+        # dict of moves sorted by cp value, includes url of servers
         out = sorted(out.items(), key=lambda x: x[1], reverse=True)
         print(out[0][0])
-        self.main_server = out[0][1]
+        self.main_server = out[0][1][1]
         return out[0][0]
 
     async def setup_engine(self, socket, options):
         if self.token is not None:
             try:
-                async with connect(self.main_server,
+                async with connect(socket,
                                    extra_headers={"Authorization": f"Bearer {self.token}"}) as websocket:
                     await websocket.send("uci")
                     while True:
@@ -456,7 +456,7 @@ class ChessClient:
         else:
             print("Token is None")
 
-    async def setup_engines(self, options):
+    async def send_options(self, options):
         loop = asyncio.get_event_loop()
         tasks = []
         for socket in config['socket_ips']:
@@ -465,7 +465,5 @@ class ChessClient:
         await asyncio.gather(*tasks)
 
     # user options relayed to every engine -- todo implementation for certain options ex. multipc??
-    def setup_enginess(self, options):
-        asyncio.run(self.setup_engines(options))
-
-    # todo gather user input into options
+    def setup_engines(self, options):
+        asyncio.run(self.send_options(options))
