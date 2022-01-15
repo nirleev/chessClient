@@ -2,35 +2,39 @@ from chessClient import *
 
 
 def run():
-    uci_response = 'blebleblebel'
-    #todo stin loop, isready impementation, setoption gathering, relay position/time/depth limits
     chess_client = ChessClient()
     chess_client.login()
     chess_client.add_chess_servers()
     chess_client.available_servers()
     chess_client.start_chess_servers_engines()
+    uci_response = 'blebleblebel'
     options = []
-    go = ''
     while True:
         inpt = input()
-        if 'uci' in inpt:
-            print(uci_response)
+        if 'uci' == inpt:
+            print(uci_response)  # todo implement response
         elif 'isready' in inpt:
             print('readyok')
         elif 'setoption' in inpt:
             options.append(inpt)
+        # ignoring MultiPV for now
+        elif 'setoption' and 'MultiPV' in inpt:
+            pass
+        elif 'ucinewgame' in inpt:
+            pass
         elif 'position' in inpt:
             config['start_pos'] = " ".join(inpt.split()[3:])
             print(config['start_pos'])
         elif 'go' in inpt:
-            go = inpt
-            break#todo go somehow
+            print(chess_client.best_move(inpt))
+        elif 'stop' in inpt:  # todo stop implementation
+            break
 
-    chess_client.setup_engines(options)
-    chess_client.best_move()
+        if options != []:
+            chess_client.setup_engines(options)
+            options = []
+
     chess_client.delete_chess_servers()
-
-    # do something
     chess_client.logout()
 
 

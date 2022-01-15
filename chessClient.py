@@ -280,7 +280,7 @@ class ChessClient:
 
     ''' WEBSOCKETS COMMUNICATION '''
 
-    async def move_eval(self, socket, moves, top_moves):
+    async def move_eval(self, socket, moves, top_moves, go_options):
         if self.token is not None:
             try:
                 async with connect(socket,
@@ -307,8 +307,8 @@ class ChessClient:
                         print(message)
                         if message == 'readyok':
                             break
-                    await websocket.send(f"position startpos moves {config['movesNum']}")
-                    await websocket.send(f"go movetime 15000 searchmoves {moves}")
+                    await websocket.send(f"position startpos moves {config['start_pos']}")
+                    await websocket.send(f"go {go_options} searchmoves {moves}")
 
                     info = []
                     while True:
@@ -328,7 +328,7 @@ class ChessClient:
             print("Token is None")
 
     # https://stackoverflow.com/questions/49858021/listen-to-multiple-socket-with-websockets-and-asyncio
-    async def distribute_processing(self, moves, top_moves):
+    async def distribute_processing(self, moves, top_moves, go_options):
         loop = asyncio.get_event_loop()
         tasks = []
         prev_step = 0
@@ -339,14 +339,14 @@ class ChessClient:
             for m in moves[prev_step:next]:
                 mvs += f"{m} "
                 # todo may go out of bouds or not take a move into account?
-            tasks.append(loop.create_task(self.move_eval(url, mvs, top_moves)))
+            tasks.append(loop.create_task(self.move_eval(url, mvs, top_moves, go_options)))
             prev_step += step
             next += step
 
         await asyncio.gather(*tasks)
 
-    def parallelize(self, moves, top_moves):
-        asyncio.run(self.distribute_processing(moves, top_moves))
+    def parallelize(self, moves, top_moves, go_options):
+        asyncio.run(self.distribute_processing(moves, top_moves, go_options))
 
     async def get_moves(self):
         if self.main_server is None:
@@ -378,7 +378,7 @@ class ChessClient:
                         if message == 'readyok':
                             break
 
-                    await websocket.send(f"position startpos moves {config['movesNum']}")
+                    await websocket.send(f"position startpos moves {config['start_pos']}")
                     await websocket.send("go depth 10")
 
                     info = []
@@ -413,17 +413,17 @@ class ChessClient:
 
         return moves
 
-    def best_move(self):
+    def best_move(self, go):
         moves = self.get_best_moves()
         top_moves = {}
-        self.parallelize(moves, top_moves)
+        go_options = go[3:]
+        self.parallelize(moves, top_moves, go_options)
         out = {}
         for move in top_moves.keys():
             out[move.split()[21]] = (move.split()[9], top_moves[move])
 
         # dict of moves sorted by cp value, includes url of servers
         out = sorted(out.items(), key=lambda x: x[1], reverse=True)
-        print(out[0][0])
         self.main_server = out[0][1][1]
         return out[0][0]
 
@@ -464,6 +464,8 @@ class ChessClient:
 
         await asyncio.gather(*tasks)
 
-    # user options relayed to every engine -- todo implementation for certain options ex. multipc??
+    # user options relayed to every engine -- todo implementation for certain options ex. multipv??
     def setup_engines(self, options):
         asyncio.run(self.send_options(options))
+
+    #todo correct output printed
