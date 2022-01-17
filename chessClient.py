@@ -10,6 +10,8 @@ class ChessClient:
     def __init__(self):
         self.token = None
         self.main_server = None
+        self.stop = False  # todo implement stopping while searching for the best move
+        self.nodes_searched = 0  # todo implement this too
 
     ''' USER METHODS '''
 
@@ -320,6 +322,8 @@ class ChessClient:
                                 print(f"this --- {info[-2]}")
                                 top_moves[info[-2]] = socket
                                 return
+                        if self.stop is True:
+                            await websocket.send("stop")  # todo sending too many times may break something??????
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -388,8 +392,10 @@ class ChessClient:
                             info.append(message)
                             print(message)
                             if 'bestmove' in message:
-                                print(info[-(config['movesNum'] + 1):-1])
-                                return info[-(config['movesNum'] + 1):-1]
+                                # return a list of all moves found with multiPV
+                                multipv = info[-2].split()[info[-2].split().index("multipv") + 1]
+                                print(info[-(int(multipv) + 1):-1])
+                                return info[-(int(multipv) + 1):-1]
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -407,6 +413,7 @@ class ChessClient:
 
         moves = []
         for cp, move in zip(moves_cps.values(), moves_cps.keys()):
+            # filter out bad moves
             if abs(int(best_cp) - int(cp)) > 100 and len(moves) > len(config['socket_ips']):
                 break
             moves.append(move)
@@ -420,11 +427,14 @@ class ChessClient:
         self.parallelize(moves, top_moves, go_options)
         out = {}
         for move in top_moves.keys():
-            out[move.split()[21]] = (move.split()[9], top_moves[move])
+            move_sp = move.split()
+            # retrieve move, cp and socket which found that move
+            out[move_sp[move_sp.index("pv") + 1]] = (move_sp[move_sp.index("cp") + 1], top_moves[move])
 
         # dict of moves sorted by cp value, includes url of servers
-        out = sorted(out.items(), key=lambda x: x[1], reverse=True)
+        out = sorted(out.items(), key=lambda x: int(x[1][0]), reverse=True)
         self.main_server = out[0][1][1]
+        self.stop = False
         return out[0][0]
 
     async def setup_engine(self, socket, options):
@@ -468,4 +478,4 @@ class ChessClient:
     def setup_engines(self, options):
         asyncio.run(self.send_options(options))
 
-    #todo correct output printed
+    # todo correct output printed

@@ -15,11 +15,11 @@ def run():
             print(uci_response)  # todo implement response
         elif 'isready' in inpt:
             print('readyok')
+        elif 'setoption' and 'MultiPV' in inpt:
+            pass
         elif 'setoption' in inpt:
             options.append(inpt)
         # ignoring MultiPV for now
-        elif 'setoption' and 'MultiPV' in inpt:
-            pass
         elif 'ucinewgame' in inpt:
             pass
         elif 'position' in inpt:
@@ -28,6 +28,8 @@ def run():
         elif 'go' in inpt:
             print(chess_client.best_move(inpt))
         elif 'stop' in inpt:  # todo stop implementation
+            chess_client.stop = True
+        elif 'quit' in inpt:
             break
 
         if options != []:
