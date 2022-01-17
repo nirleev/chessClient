@@ -11,7 +11,7 @@ class ChessClient:
         self.token = None
         self.main_server = None
         self.stop = False  # todo implement stopping while searching for the best move
-        self.nodes_searched = 0  # todo implement this too
+        self.nodes_searched = {s: 0 for s in config["socket_ips"]}  # todo test this
 
     ''' USER METHODS '''
 
@@ -319,9 +319,12 @@ class ChessClient:
                             info.append(message)
                             print(message)
                             if 'bestmove' in message:
-                                print(f"this --- {info[-2]}")
+                                print(f"{socket} --- {info[-2]}")
                                 top_moves[info[-2]] = socket
                                 return
+                            elif 'nodes' in message:
+                                message = message.split()
+                                self.nodes_searched[socket] = int(message[message.index("nodes") + 1])
                         if self.stop is True:
                             await websocket.send("stop")  # todo sending too many times may break something??????
             except KeyError:
@@ -429,13 +432,15 @@ class ChessClient:
         for move in top_moves.keys():
             move_sp = move.split()
             # retrieve move, cp and socket which found that move
-            out[move_sp[move_sp.index("pv") + 1]] = (move_sp[move_sp.index("cp") + 1], top_moves[move])
+            out[move_sp[move_sp.index("pv") + 1]] = (move_sp[move_sp.index("cp") + 1], top_moves[move], move)
 
         # dict of moves sorted by cp value, includes url of servers
         out = sorted(out.items(), key=lambda x: int(x[1][0]), reverse=True)
         self.main_server = out[0][1][1]
         self.stop = False
-        return out[0][0]
+        print(out[0][0])
+        print(f"{sum(self.nodes_searched.values())} nodes searched")
+        print(out[0][1][2])
 
     async def setup_engine(self, socket, options):
         if self.token is not None:
