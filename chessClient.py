@@ -1,4 +1,4 @@
-from config import config
+from configuration import *
 import requests
 import json
 import asyncio
@@ -8,10 +8,13 @@ from multiprocessing import Process
 
 class ChessClient:
     def __init__(self):
+        configuration = Configuration()
+        configuration.read_config()
+        self.config = configuration.get_config()
         self.token = None
         self.main_server = None
         self.stop = False  # todo implement stopping while searching for the best move
-        self.nodes_searched = {s: 0 for s in config["socket_ips"]}  # todo test this
+        self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}  # todo test this
 
     ''' USER METHODS '''
 
@@ -19,13 +22,13 @@ class ChessClient:
     def add_user(self):
         headers = {'Authorization': f'Bearer {self.token}', 'Content-type': 'application/json'}
         try:
-            for info in config['users']:
+            for info in self.config['users']:
                 data = {
                     "login": info["login"],
                     "password": info["password"]
                 }
 
-                url = f"{config['uciServer']}/user/add"
+                url = f"{self.config['uciServer']}/user/add"
                 response = requests.post(url, data=json.dumps(data), headers=headers)
                 print(response.text)
         except KeyError:
@@ -38,10 +41,10 @@ class ChessClient:
         headers = {'Content-type': 'application/json'}
         try:
             data = {
-                "login": config["login"],
-                "password": config["password"]
+                "login": self.config["login"],
+                "password": self.config["password"]
             }
-            url = f"{config['uciServer']}/user/login"
+            url = f"{self.config['uciServer']}/user/login"
 
             response = requests.post(url, data=json.dumps(data), headers=headers)
             resp = json.loads(response.text)
@@ -57,7 +60,7 @@ class ChessClient:
     def logout(self):
         headers = {'Authorization': f'Bearer {self.token}'}
         try:
-            url = f"{config['uciServer']}/user/logout"
+            url = f"{self.config['uciServer']}/user/logout"
             response = requests.post(url, headers=headers)
             print(response.text)
         except KeyError:
@@ -72,8 +75,8 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}', 'Content-type': 'application/json'}
             try:
-                url = f"{config['uciServer']}/engine/add"
-                for data in config['engines']:
+                url = f"{self.config['uciServer']}/engine/add"
+                for data in self.config['engines']:
                     response = requests.post(url, data=json.dumps(data), headers=headers)
                     print(response.text)
             except KeyError:
@@ -88,7 +91,7 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}'}
             try:
-                url = f"{config['uciServer']}/engine/available"
+                url = f"{self.config['uciServer']}/engine/available"
                 response = requests.get(url, headers=headers)
                 print(response.text)
             except KeyError:
@@ -103,8 +106,8 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}'}
             try:
-                url = f"{config['uciServer']}/engine/send"
-                for command in config['commands']:
+                url = f"{self.config['uciServer']}/engine/send"
+                for command in self.config['commands']:
                     response = requests.post(url, data=command, headers=headers)
                     print(response.text)
             except KeyError:
@@ -120,9 +123,9 @@ class ChessClient:
             headers = {'Authorization': f'Bearer {self.token}', 'Content-type': 'application/json'}
             try:
                 data = {
-                    'name': config['engine']
+                    'name': self.config['engine']
                 }
-                url = f"{config['uciServer']}/engine/start"
+                url = f"{self.config['uciServer']}/engine/start"
                 response = requests.post(url, data=json.dumps(data), headers=headers)
                 print(response.text)
             except KeyError:
@@ -137,7 +140,7 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}', 'Content-type': 'application/json'}
             try:
-                url = f"{config['uciServer']}/engine/stop"
+                url = f"{self.config['uciServer']}/engine/stop"
                 response = requests.post(url, headers=headers)
                 print(response.text)
             except KeyError:
@@ -154,8 +157,8 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}', 'Content-type': 'application/json'}
             try:
-                url = f"{config['uciServer']}/server/add"
-                for data in config['machines_info']:
+                url = f"{self.config['uciServer']}/server/add"
+                for data in self.config['machines_info']:
                     response = requests.post(url, data=json.dumps(data), headers=headers)
                     print(response.text)
             except KeyError:
@@ -170,7 +173,7 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}'}
             try:
-                url = f"{config['uciServer']}/server/all"
+                url = f"{self.config['uciServer']}/server/all"
                 response = requests.get(url, headers=headers)
                 print(response.text)
             except KeyError:
@@ -185,8 +188,8 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}'}
             try:
-                url = f"{config['uciServer']}/server/command"
-                for command in config['commands_servers']:
+                url = f"{self.config['uciServer']}/server/command"
+                for command in self.config['commands_servers']:
                     response = requests.post(url, data=command, headers=headers)
                     print(response.text)
             except KeyError:
@@ -201,8 +204,8 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}'}
             try:
-                url = f"{config['uciServer']}/server/command-engine"
-                for command in config['commands_engines']:
+                url = f"{self.config['uciServer']}/server/command-engine"
+                for command in self.config['commands_engines']:
                     response = requests.post(url, data=command, headers=headers)
                     print(response.text)
             except KeyError:
@@ -217,8 +220,8 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}'}
             try:
-                url = f"{config['uciServer']}/server/delete"
-                for data in config['delete_machines']:
+                url = f"{self.config['uciServer']}/server/delete"
+                for data in self.config['delete_machines']:
                     response = requests.post(url, data=data['name'], headers=headers)
                     print(response.text)
             except KeyError:
@@ -233,7 +236,7 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}'}
             try:
-                url = f"{config['uciServer']}/server/heartbeat"
+                url = f"{self.config['uciServer']}/server/heartbeat"
                 response = requests.get(url, headers=headers)
                 print(response.text)
             except KeyError:
@@ -248,13 +251,13 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}', 'Content-type': 'application/json'}
             try:
-                for info in config['machines_info']:
+                for info in self.config['machines_info']:
                     data = {
-                        'engineName': config["engine"],
+                        'engineName': self.config["engine"],
                         'serverName': info["name"]
                     }
 
-                    url = f"{config['uciServer']}/server/start-engine"
+                    url = f"{self.config['uciServer']}/server/start-engine"
                     response = requests.post(url, data=json.dumps(data), headers=headers)
                     print(response.text)
             except KeyError:
@@ -269,8 +272,8 @@ class ChessClient:
         if self.token is not None:
             headers = {'Authorization': f'Bearer {self.token}'}
             try:
-                for info in config['machines_info']:
-                    url = f"{config['uciServer']}/server/stop-engine"
+                for info in self.config['machines_info']:
+                    url = f"{self.config['uciServer']}/server/stop-engine"
                     response = requests.post(url, data=info["name"], headers=headers)
                     print(response.text)
             except KeyError:
@@ -309,7 +312,7 @@ class ChessClient:
                         print(message)
                         if message == 'readyok':
                             break
-                    await websocket.send(f"position startpos moves {config['start_pos']}")
+                    await websocket.send(f"position startpos moves {self.config['start_pos']}")
                     await websocket.send(f"go {go_options} searchmoves {moves}")
 
                     info = []
@@ -339,9 +342,9 @@ class ChessClient:
         loop = asyncio.get_event_loop()
         tasks = []
         prev_step = 0
-        step = len(moves) // len(config['socket_ips'])
+        step = len(moves) // len(self.config['socket_ips'])
         next = step
-        for engine, url in enumerate(config['socket_ips']):
+        for engine, url in enumerate(self.config['socket_ips']):
             mvs = ''
             for m in moves[prev_step:next]:
                 mvs += f"{m} "
@@ -357,7 +360,7 @@ class ChessClient:
 
     async def get_moves(self):
         if self.main_server is None:
-            self.main_server = config['socket_ips'][0]
+            self.main_server = self.config['socket_ips'][0]
         if self.token is not None:
             try:
                 async with connect(self.main_server,
@@ -369,7 +372,7 @@ class ChessClient:
                         if message == 'uciok':
                             break
 
-                    await websocket.send(f"setoption name MultiPV value {config['movesNum']}")
+                    await websocket.send(f"setoption name MultiPV value {self.config['movesNum']}")
                     await websocket.send("isready")
                     while True:
                         print(message)
@@ -385,7 +388,7 @@ class ChessClient:
                         if message == 'readyok':
                             break
 
-                    await websocket.send(f"position startpos moves {config['start_pos']}")
+                    await websocket.send(f"position startpos moves {self.config['start_pos']}")
                     await websocket.send("go depth 10")
 
                     info = []
@@ -417,7 +420,7 @@ class ChessClient:
         moves = []
         for cp, move in zip(moves_cps.values(), moves_cps.keys()):
             # filter out bad moves
-            if abs(int(best_cp) - int(cp)) > 100 and len(moves) > len(config['socket_ips']):
+            if abs(int(best_cp) - int(cp)) > 100 and len(moves) > len(self.config['socket_ips']):
                 break
             moves.append(move)
 
@@ -474,7 +477,7 @@ class ChessClient:
     async def send_options(self, options):
         loop = asyncio.get_event_loop()
         tasks = []
-        for socket in config['socket_ips']:
+        for socket in self.config['socket_ips']:
             tasks.append(loop.create_task(self.setup_engine(socket, options)))
 
         await asyncio.gather(*tasks)

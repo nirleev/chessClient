@@ -1,6 +1,10 @@
 from stockfish import Stockfish
-from config import config
+from configuration import *
 from multiprocessing import Process
+
+configuration = Configuration()
+configuration.read_config()
+config = configuration.get_config()
 
 
 def best_moves_depth(moves, depth, start_pos):
