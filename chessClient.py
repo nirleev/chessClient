@@ -13,7 +13,7 @@ class ChessClient:
         self.config = configuration.get_config()
         self.token = None
         self.main_server = None
-        self.stop = False  # todo implement stopping while searching for the best move
+        self.run_servers = False  # todo implement stopping while searching for the best move
         self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}  # todo test this
 
     ''' USER METHODS '''
@@ -440,7 +440,7 @@ class ChessClient:
         # dict of moves sorted by cp value, includes url of servers
         out = sorted(out.items(), key=lambda x: int(x[1][0]), reverse=True)
         self.main_server = out[0][1][1]
-        self.stop = False
+        # self.stop = False
         print(out[0][0])
         print(f"{sum(self.nodes_searched.values())} nodes searched")
         print(out[0][1][2])

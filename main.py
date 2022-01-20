@@ -8,6 +8,7 @@ def run():
     else:
         chess_client.add_chess_servers()
         chess_client.available_servers()
+        chess_client.run_servers = True
         chess_client.start_chess_servers_engines()
         uci_response = """option name Debug Log File type string default
     option name Threads type spin default 1 min 1 max 512
@@ -45,9 +46,13 @@ def run():
             elif 'position' in inpt:
                 chess_client.config['start_pos'] = " ".join(inpt.split()[3:])
             elif 'go' in inpt:
+                if chess_client.run_servers is False:
+                    chess_client.run_servers = True
+                    chess_client.start_chess_servers_engines()
                 chess_client.best_move(inpt)
             elif 'stop' in inpt:  # todo stop implementation
-                chess_client.stop = True
+                chess_client.run_servers = False
+                chess_client.stop_chess_servers_engines()
             elif 'quit' in inpt:
                 break
 
@@ -55,6 +60,8 @@ def run():
                 chess_client.setup_engines(options)
                 options = []
 
+        chess_client.run_servers = False
+        chess_client.stop_chess_servers_engines()
         chess_client.delete_chess_servers()
         chess_client.logout()
 
