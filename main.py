@@ -1,7 +1,10 @@
 from chessClient import *
 import threading
 
+leave = False
 chess_client = ChessClient()
+
+
 def run():
     if chess_client.login() is None:
         print("Invalid credentials")
@@ -28,9 +31,11 @@ option name Syzygy50MoveRule type check default true
 option name SyzygyProbeLimit type spin default 7 min 0 max 7
 option name Use NNUE type check default true
 option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to config?
+
         options = []
         while True:
             inpt = input()
+            print('XXDD')
             if 'uci' == inpt:
                 print(uci_response)  # todo implement response
             elif 'isready' in inpt:
@@ -55,14 +60,10 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
 
                 t1.join()
                 t2.join()
-            elif 'stop' in inpt:  # todo stop implementation
-                chess_client.stop_chess_servers_engines()
-            elif 'quit' in inpt:
-                break
+                print('bruh')
 
-            # if options != []:#todo remove?
-            #     chess_client.setup_engines(options)
-            #     options = []
+            if leave is True:
+                break
 
         chess_client.stop_chess_servers_engines()
         chess_client.delete_chess_servers()
@@ -74,9 +75,13 @@ def stop():
         inpt = input()
         if 'stop' in inpt:  # todo use some http methods????
             chess_client.stop = True
+            leave = False
+            return
         elif 'quit' in inpt:
             chess_client.stop = True
             chess_client.stop_chess_servers_engines()
+            leave = True
+            return
 
 
 if __name__ == "__main__":

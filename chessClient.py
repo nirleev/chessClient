@@ -13,7 +13,7 @@ class ChessClient:
         self.config = configuration.get_config()
         self.token = None
         self.main_server = None
-        self.stop = False  # todo implement stopping while searching for the best move
+        self.stop = False
         self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}
         self.nds_per_sec = {s: 0 for s in self.config["socket_ips"]}
         self.info = {"cp": None, "move": None}
@@ -326,7 +326,7 @@ class ChessClient:
                             info.append(message)
 
                             if self.stop is True:
-                                await websocket.send("stop")  # todo sending too many times may break something??????
+                                await websocket.send("stop")
 
                             if 'bestmove' in message:
                                 # print(f"{socket} --- {info[-2]}")
@@ -349,7 +349,7 @@ class ChessClient:
                                     message[13] = str(sum(self.nds_per_sec.values()))
                                     message[19] = mvv
 
-                                    print(" ".join(message)) #todo czemu czssem nie działa
+                                    print(" ".join(message))
 
 
 
@@ -371,7 +371,6 @@ class ChessClient:
             mvs = ''
             for m in moves[prev_step:next]:
                 mvs += f"{m} "
-                # todo may go out of bouds or not take a move into account?
             tasks.append(loop.create_task(self.move_eval(url, mvs, top_moves, go_options)))
             prev_step += step
             next += step
@@ -531,4 +530,3 @@ class ChessClient:
     # user options relayed to every engine --
     def setup_engines(self, options):
         asyncio.run(self.send_options(options))
-#todo time for initial computations  decrease
