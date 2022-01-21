@@ -3,7 +3,6 @@ import requests
 import json
 import asyncio
 from websockets import connect
-from multiprocessing import Process
 
 
 class ChessClient:
@@ -13,8 +12,10 @@ class ChessClient:
         self.config = configuration.get_config()
         self.token = None
         self.main_server = None
-        self.run_servers = False  # todo implement stopping while searching for the best move
-        self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}  # todo test this
+        self.stop = False  # todo implement stopping while searching for the best move
+        self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}
+        self.nds_per_sec = {s: 0 for s in self.config["socket_ips"]}
+        self.info = {"cp": None, "move": None}
 
     ''' USER METHODS '''
 
@@ -293,15 +294,15 @@ class ChessClient:
                     await websocket.send("uci")
                     while True:
                         message = await websocket.recv()
-                        print(message)
+                        # print(message)
                         if message == 'uciok':
                             break
 
                     await websocket.send("setoption name MultiPV value 1")
                     await websocket.send("isready")
                     while True:
-                        print(message)
                         message = await websocket.recv()
+                        print(message)
                         if message == 'readyok':
                             break
 
@@ -309,7 +310,7 @@ class ChessClient:
                     await websocket.send("isready")
                     while True:
                         message = await websocket.recv()
-                        print(message)
+                        # print(message)
                         if message == 'readyok':
                             break
                     await websocket.send(f"position startpos moves {self.config['start_pos']}")
@@ -320,14 +321,29 @@ class ChessClient:
                         await websocket.recv()
                         async for message in websocket:
                             info.append(message)
-                            print(message)
                             if 'bestmove' in message:
                                 print(f"{socket} --- {info[-2]}")
                                 top_moves[info[-2]] = socket
                                 return
-                            elif 'nodes' in message:
+
+                            if "info" and "nodes" in message:
                                 message = message.split()
                                 self.nodes_searched[socket] = int(message[message.index("nodes") + 1])
+                                self.nodes_searched[socket] = int(message[message.index("nps") + 1])
+                                mvv = message[19]
+                                cpp = int(message[9])
+
+                                if self.info["move"] == mvv or self.info["cp"] is None or self.info["cp"] < cpp:
+                                    self.info["cp"] = cpp
+                                    self.info["move"] = mvv
+
+                                    message[9] = str(cpp)
+                                    message[11] = str(sum(self.nodes_searched.values()))
+                                    message[13] = str(sum(self.nds_per_sec.values()))
+                                    message[19] = mvv
+
+                                    print(" ".join(message)) #todo czemu czssem nie działa
+
                         if self.stop is True:
                             await websocket.send("stop")  # todo sending too many times may break something??????
             except KeyError:
@@ -365,17 +381,17 @@ class ChessClient:
             try:
                 async with connect(self.main_server,
                                    extra_headers={"Authorization": f"Bearer {self.token}"}) as websocket:
-                    await websocket.send("uci")
-                    while True:
-                        message = await websocket.recv()
-                        print(message)
-                        if message == 'uciok':
-                            break
+                    # await websocket.send("uci")
+                    # while True:
+                    #     message = await websocket.recv()
+                    #     print(message)
+                    #     if message == 'uciok':
+                    #         break
 
                     await websocket.send(f"setoption name MultiPV value {self.config['movesNum']}")
                     await websocket.send("isready")
                     while True:
-                        print(message)
+                        # print(message)
                         message = await websocket.recv()
                         if message == 'readyok':
                             break
@@ -384,23 +400,23 @@ class ChessClient:
                     await websocket.send("isready")
                     while True:
                         message = await websocket.recv()
-                        print(message)
+                        # print(message)
                         if message == 'readyok':
                             break
 
                     await websocket.send(f"position startpos moves {self.config['start_pos']}")
-                    await websocket.send("go depth 10")
+                    await websocket.send("go depth 10")  # todo
 
                     info = []
                     while True:
                         await websocket.recv()
                         async for message in websocket:
                             info.append(message)
-                            print(message)
+                            # print(message)
                             if 'bestmove' in message:
                                 # return a list of all moves found with multiPV
                                 multipv = info[-2].split()[info[-2].split().index("multipv") + 1]
-                                print(info[-(int(multipv) + 1):-1])
+                                # print(info[-(int(multipv) + 1):-1])
                                 return info[-(int(multipv) + 1):-1]
             except KeyError:
                 print("Key error")
@@ -441,31 +457,31 @@ class ChessClient:
         out = sorted(out.items(), key=lambda x: int(x[1][0]), reverse=True)
         self.main_server = out[0][1][1]
         # self.stop = False
-        print(out[0][0])
+        print(f"bestmove {out[0][0]} ponder ")
         print(f"{sum(self.nodes_searched.values())} nodes searched")
-        print(out[0][1][2])
+        # print(out[0][1][2])
 
     async def setup_engine(self, socket, options):
         if self.token is not None:
             try:
                 async with connect(socket,
                                    extra_headers={"Authorization": f"Bearer {self.token}"}) as websocket:
-                    await websocket.send("uci")
-                    while True:
-                        message = await websocket.recv()
-                        print(message)
-                        if message == 'uciok':
-                            break
+                    # await websocket.send("uci")
+                    # while True:
+                    #     message = await websocket.recv()
+                    #     print(message)
+                    #     if message == 'uciok':
+                    #         break
 
                     for option in options:
                         await websocket.send(option)
 
-                    await websocket.send("isready")
-                    while True:
-                        print(message)
-                        message = await websocket.recv()
-                        if message == 'readyok':
-                            break
+                    # await websocket.send("isready")
+                    # while True:
+                    #     # print(message)
+                    #     message = await websocket.recv()
+                    #     if message == 'readyok':
+                    #         break
 
             except KeyError:
                 print("Key error")
@@ -482,8 +498,7 @@ class ChessClient:
 
         await asyncio.gather(*tasks)
 
-    # user options relayed to every engine -- todo implementation for certain options ex. multipv??
+    # user options relayed to every engine --
     def setup_engines(self, options):
         asyncio.run(self.send_options(options))
-
-    # todo correct output printed
+#todo time for initial computations  decrease

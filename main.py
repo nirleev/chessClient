@@ -1,6 +1,5 @@
 from chessClient import *
 
-
 def run():
     chess_client = ChessClient()
     if chess_client.login() is None:
