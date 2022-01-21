@@ -3,6 +3,7 @@ import requests
 import json
 import asyncio
 from websockets import connect
+import time
 
 
 class ChessClient:
@@ -16,6 +17,8 @@ class ChessClient:
         self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}
         self.nds_per_sec = {s: 0 for s in self.config["socket_ips"]}
         self.info = {"cp": None, "move": None}
+        self.time = time.time()
+        self.debug = True #todo implement config
 
     ''' USER METHODS '''
 
@@ -291,12 +294,12 @@ class ChessClient:
             try:
                 async with connect(socket,
                                    extra_headers={"Authorization": f"Bearer {self.token}"}) as websocket:
-                    await websocket.send("uci")
-                    while True:
-                        message = await websocket.recv()
-                        # print(message)
-                        if message == 'uciok':
-                            break
+                    # await websocket.send("uci")
+                    # while True:
+                    #     message = await websocket.recv()
+                    #     # print(message)
+                    #     if message == 'uciok':
+                    #         break
 
                     await websocket.send("setoption name MultiPV value 1")
                     await websocket.send("isready")
@@ -306,7 +309,7 @@ class ChessClient:
                         if message == 'readyok':
                             break
 
-                    await websocket.send("ucinewgame")
+                    # await websocket.send("ucinewgame")
                     await websocket.send("isready")
                     while True:
                         message = await websocket.recv()
@@ -321,8 +324,12 @@ class ChessClient:
                         await websocket.recv()
                         async for message in websocket:
                             info.append(message)
+
+                            if self.stop is True:
+                                await websocket.send("stop")  # todo sending too many times may break something??????
+
                             if 'bestmove' in message:
-                                print(f"{socket} --- {info[-2]}")
+                                # print(f"{socket} --- {info[-2]}")
                                 top_moves[info[-2]] = socket
                                 return
 
@@ -344,8 +351,8 @@ class ChessClient:
 
                                     print(" ".join(message)) #todo czemu czssem nie działa
 
-                        if self.stop is True:
-                            await websocket.send("stop")  # todo sending too many times may break something??????
+
+
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -396,7 +403,7 @@ class ChessClient:
                         if message == 'readyok':
                             break
 
-                    await websocket.send("ucinewgame")
+                    # await websocket.send("ucinewgame")
                     await websocket.send("isready")
                     while True:
                         message = await websocket.recv()
@@ -412,6 +419,8 @@ class ChessClient:
                         await websocket.recv()
                         async for message in websocket:
                             info.append(message)
+                            if time.time() - self.time > 15:#todo to confi?
+                                await websocket.send("stop")
                             # print(message)
                             if 'bestmove' in message:
                                 # return a list of all moves found with multiPV
@@ -430,7 +439,8 @@ class ChessClient:
         strings = asyncio.run(self.get_moves())
         moves_cps = {}
         for move in strings:
-            moves_cps[move.split()[21]] = move.split()[9]
+            move = move.split()
+            moves_cps[move[move.index("pv") + 1]] = move[move.index("cp") + 1]
         best_cp = list(moves_cps.values())[0]
 
         moves = []
@@ -443,9 +453,23 @@ class ChessClient:
         return moves
 
     def best_move(self, go):
+        self.time = time.time()
         moves = self.get_best_moves()
         top_moves = {}
+        off_time = int(time.time() - self.time) * 1000
+        if "time" in go:
+            splt = go.split()
+            if "btime" in go:  # todo ładniej to
+                splt[splt.index("btime") + 1] = str(int(splt[splt.index("btime") + 1]) - off_time)
+            if "wtime" in go:
+                splt[splt.index("wtime") + 1] = str(int(splt[splt.index("wtime") + 1]) - off_time)
+            if "move" in go:
+                splt[splt.index("move") + 1] = str(int(splt[splt.index("move") + 1]) - off_time)
+
+            go = " ".join(splt)
+
         go_options = go[3:]
+
         self.parallelize(moves, top_moves, go_options)
         out = {}
         for move in top_moves.keys():
@@ -457,8 +481,8 @@ class ChessClient:
         out = sorted(out.items(), key=lambda x: int(x[1][0]), reverse=True)
         self.main_server = out[0][1][1]
         # self.stop = False
-        print(f"bestmove {out[0][0]} ponder ")
-        print(f"{sum(self.nodes_searched.values())} nodes searched")
+        print(f"bestmove {out[0][0]} ponder ")#todo
+        # print(f"{sum(self.nodes_searched.values())} nodes searched")
         # print(out[0][1][2])
 
     async def setup_engine(self, socket, options):
@@ -472,16 +496,22 @@ class ChessClient:
                     #     print(message)
                     #     if message == 'uciok':
                     #         break
+                    if options != []:
+                        for option in options:
+                            await websocket.send(option)
 
-                    for option in options:
-                        await websocket.send(option)
+                    await websocket.send("isready")
+                    while True:
+                        message = await websocket.recv()
+                        if message == 'readyok':
+                            break
 
-                    # await websocket.send("isready")
-                    # while True:
-                    #     # print(message)
-                    #     message = await websocket.recv()
-                    #     if message == 'readyok':
-                    #         break
+                    await websocket.send("ucinewgame")
+                    await websocket.send("isready")
+                    while True:
+                        message = await websocket.recv()
+                        if message == 'readyok':
+                            break
 
             except KeyError:
                 print("Key error")
