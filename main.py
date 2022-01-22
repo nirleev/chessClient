@@ -6,8 +6,6 @@ chess_client = ChessClient()
 
 
 def run():
-    global inpt
-    inpt = ""
     if chess_client.login() is None:
         print("Invalid credentials")
     else:
@@ -36,27 +34,28 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
 
         options = []
         while True:
-            if chess_client.locally_finished is False:
-                chess_client.locally_finished = True
+            if chess_client.locally_finished is True:
+                chess_client.locally_finished = False
+                print(chess_client.inpt)
             else:
-                inpt = input()
+                chess_client.inpt = input()
             print('XXDD')
-            if 'uci' == inpt:
+            if 'uci' == chess_client.inpt:
                 print(uci_response)  # todo implement response
-            elif 'isready' in inpt:
+            elif 'isready' in chess_client.inpt:
                 print('readyok')
-            elif 'setoption' and 'MultiPV' in inpt:
+            elif 'setoption' and 'MultiPV' in chess_client.inpt:
                 pass
-            elif 'setoption' in inpt:
-                options.append(inpt)
+            elif 'setoption' in chess_client.inpt:
+                options.append(chess_client.inpt)
             # ignoring MultiPV for now
-            elif 'ucinewgame' in inpt:
+            elif 'ucinewgame' in chess_client.inpt:
                 pass
-            elif 'position' in inpt:
-                chess_client.config['start_pos'] = " ".join(inpt.split()[3:])
-            elif 'go' in inpt:
+            elif 'position' in chess_client.inpt:
+                chess_client.config['start_pos'] = " ".join(chess_client.inpt.split()[3:])
+            elif 'go' in chess_client.inpt:
                 chess_client.setup_engines(options)
-                t1 = threading.Thread(target=chess_client.best_move, args=(inpt,))
+                t1 = threading.Thread(target=chess_client.best_move, args=(chess_client.inpt,))
                 t2 = threading.Thread(target=stop)
                 # chess_client.start_chess_servers_engines()
                 # chess_client.best_move(inpt)
@@ -78,12 +77,12 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
 def stop():
     chess_client.finished = False
     while True:
-        inpt = input()
-        if 'stop' in inpt:  # todo use some http methods????
+        chess_client.inpt = input()
+        if 'stop' in chess_client.inpt:  # todo use some http methods????
             chess_client.stop = True
             leave = False
             return
-        elif 'quit' in inpt:
+        elif 'quit' in chess_client.inpt:
             chess_client.stop = True
             chess_client.stop_chess_servers_engines()
             leave = True
