@@ -3,10 +3,11 @@ import threading
 
 leave = False
 chess_client = ChessClient()
-inpt = ""
-finished = False
+
 
 def run():
+    global inpt
+    inpt = ""
     if chess_client.login() is None:
         print("Invalid credentials")
     else:
@@ -35,9 +36,10 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
 
         options = []
         while True:
-            if finished is False:
+            if chess_client.locally_finished is False:
+                chess_client.locally_finished = True
+            else:
                 inpt = input()
-                finished = False
             print('XXDD')
             if 'uci' == inpt:
                 print(uci_response)  # todo implement response
@@ -74,6 +76,7 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
 
 
 def stop():
+    chess_client.finished = False
     while True:
         inpt = input()
         if 'stop' in inpt:  # todo use some http methods????
@@ -87,7 +90,7 @@ def stop():
             return
         elif chess_client.finished is True:
             chess_client.finished = False
-            finished = True
+            chess_client.locally_finished = True
             return
 
 

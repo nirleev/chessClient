@@ -22,6 +22,7 @@ class ChessClient:
         self.time = time.time()
         self.debug = True  # todo implement config
         self.finished = False
+        self.locally_finished = True
 
     ''' USER METHODS '''
 
