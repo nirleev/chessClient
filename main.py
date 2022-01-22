@@ -82,6 +82,9 @@ def stop():
             chess_client.stop_chess_servers_engines()
             leave = True
             return
+        elif chess_client.finished is True:
+            chess_client.finished = False
+            return
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ class ChessClient:
         self.info = {"cp": None, "move": None}
         self.time = time.time()
         self.debug = True  # todo implement config
+        self.finished = False
 
     ''' USER METHODS '''
 
@@ -487,6 +488,7 @@ class ChessClient:
         out = sorted(out.items(), key=lambda x: int(x[1][0]), reverse=True)
         self.main_server = out[0][1][1]
         # self.stop = False
+        self.finished = True
         print(f"bestmove {out[0][0]} ponder ")  # todo
         # print(f"{sum(self.nodes_searched.values())} nodes searched")
         # print(out[0][1][2])
