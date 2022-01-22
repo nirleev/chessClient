@@ -3,7 +3,8 @@ import threading
 
 leave = False
 chess_client = ChessClient()
-
+inpt = ""
+finished = False
 
 def run():
     if chess_client.login() is None:
@@ -34,7 +35,9 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
 
         options = []
         while True:
-            inpt = input()
+            if finished is False:
+                inpt = input()
+                finished = False
             print('XXDD')
             if 'uci' == inpt:
                 print(uci_response)  # todo implement response
@@ -84,6 +87,7 @@ def stop():
             return
         elif chess_client.finished is True:
             chess_client.finished = False
+            finished = True
             return
 
 
