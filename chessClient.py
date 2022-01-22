@@ -1,3 +1,5 @@
+from requests import Timeout
+
 from configuration import *
 import requests
 import json
@@ -18,7 +20,7 @@ class ChessClient:
         self.nds_per_sec = {s: 0 for s in self.config["socket_ips"]}
         self.info = {"cp": None, "move": None}
         self.time = time.time()
-        self.debug = True #todo implement config
+        self.debug = True  # todo implement config
 
     ''' USER METHODS '''
 
@@ -163,8 +165,13 @@ class ChessClient:
             try:
                 url = f"{self.config['uciServer']}/server/add"
                 for data in self.config['machines_info']:
-                    response = requests.post(url, data=json.dumps(data), headers=headers)
-                    print(response.text)
+                    try:
+                        response = requests.post(url, data=json.dumps(data),
+                                                 headers=headers, timeout=2)  # todo time cutoff + config change
+                        print(response.text)
+                    except Timeout:
+                        del self.config['machines_info'][data]
+
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -418,7 +425,7 @@ class ChessClient:
                         await websocket.recv()
                         async for message in websocket:
                             info.append(message)
-                            if time.time() - self.time > 15:#todo to confi?
+                            if time.time() - self.time > 15:  # todo to confi?
                                 await websocket.send("stop")
                             # print(message)
                             if 'bestmove' in message:
@@ -480,7 +487,7 @@ class ChessClient:
         out = sorted(out.items(), key=lambda x: int(x[1][0]), reverse=True)
         self.main_server = out[0][1][1]
         # self.stop = False
-        print(f"bestmove {out[0][0]} ponder ")#todo
+        print(f"bestmove {out[0][0]} ponder ")  # todo
         # print(f"{sum(self.nodes_searched.values())} nodes searched")
         # print(out[0][1][2])
 
