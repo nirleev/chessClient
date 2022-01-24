@@ -1,7 +1,9 @@
+import sys
+
 from chessClient import *
 import threading
 
-leave = False
+
 chess_client = ChessClient()
 
 
@@ -34,12 +36,19 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
 
         options = []
         while True:
-            if chess_client.locally_finished is True:
-                chess_client.locally_finished = False
-                print(chess_client.inpt)
-            else:
+            print(f"PASSED??? {chess_client.input_passed}")
+            if chess_client.input_passed is None:
                 chess_client.inpt = input()
-            print('XXDD')
+                print(f"INPUT === {chess_client.inpt}")
+            elif chess_client.input_passed is False:
+                chess_client.inpt = ""
+            elif chess_client.input_passed is True:
+                chess_client.input_passed = None
+
+            # print(f"PASSED??? {chess_client.input_passed}")
+            # chess_client.input_passed = False
+
+            # print('XXDD')
             if 'uci' == chess_client.inpt:
                 print(uci_response)  # todo implement response
             elif 'isready' in chess_client.inpt:
@@ -53,6 +62,7 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
                 pass
             elif 'position' in chess_client.inpt:
                 chess_client.config['start_pos'] = " ".join(chess_client.inpt.split()[3:])
+                print(f"POSITION ===== {chess_client.config['start_pos']}")
             elif 'go' in chess_client.inpt:
                 chess_client.setup_engines(options)
                 t1 = threading.Thread(target=chess_client.best_move, args=(chess_client.inpt,))
@@ -63,35 +73,50 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
                 t2.start()
 
                 t1.join()
-                t2.join()
-                print('bruh')
+                t2.join(1)  # todo does it always work?
+                print('TIMEOUT?')
 
-            if leave is True:
+            if chess_client.leave is True:
                 break
+            # print("LOOP DONE")
+            sys.stdout.flush()
 
         chess_client.stop_chess_servers_engines()
-        chess_client.delete_chess_servers()
+        chess_client.delete_chess_servers()  # todo pogadac z natalią o exception przy delete chess_client.delete_chess_servers()?
         chess_client.logout()
 
 
 def stop():
     chess_client.finished = False
+    chess_client.input_passed = False
     while True:
-        chess_client.inpt = input()
-        if 'stop' in chess_client.inpt:  # todo use some http methods????
-            chess_client.stop = True
-            leave = False
+        chess_client.inpt = input()  # todo log this input
+        print(f"INPUT2 === {chess_client.inpt}")
+        if 'stop' in chess_client.inpt:
+            chess_client.stop = True  # todo what if stop while calculating initial positions
+            chess_client.leave = False
+            chess_client.input_passed = True
             return
         elif 'quit' in chess_client.inpt:
             chess_client.stop = True
-            chess_client.stop_chess_servers_engines()
-            leave = True
+            chess_client.leave = True
+            chess_client.input_passed = True
             return
         elif chess_client.finished is True:
             chess_client.finished = False
-            chess_client.locally_finished = True
+            chess_client.input_passed = True
+            print("FINISHED")
             return
 
 
 if __name__ == "__main__":
     run()
+# todo reset engines when closing the program?
+
+# todo changing options when???
+
+# todo refactor code
+
+# todo get rid of prints from servers? - scid compatibility??
+
+# todo okomentowac kod
