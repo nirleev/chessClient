@@ -7,7 +7,7 @@ import requests
 import json
 import asyncio
 from websockets import connect
-import time# todo sys flash gówno??F SDF
+import time
 
 
 class ChessClient:
@@ -18,15 +18,19 @@ class ChessClient:
         self.token = None
         self.main_server = None
         self.stop = False
-        self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}#todo fix nodes and nps output
+        self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}
         self.nds_per_sec = {s: 0 for s in self.config["socket_ips"]}
-        self.info = {"cp": None, "move": None}
+        self.info = {"cp": None, "move": None, "depth" : 0}
         self.time = time.time()
-        self.debug = True  # todo implement config
         self.finished = False
         self.input_passed = None
         self.inpt = ""
         self.leave = False
+
+    def reset_init(self):
+        self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}
+        self.nds_per_sec = {s: 0 for s in self.config["socket_ips"]}
+        self.info = {"cp": None, "move": None, "depth" : 0}
 
     ''' USER METHODS '''
 
@@ -173,7 +177,7 @@ class ChessClient:
                 for data in self.config['machines_info']:
                     try:
                         response = requests.post(url, data=json.dumps(data),
-                                                 headers=headers, timeout=2)  # todo time cutoff + config change
+                                                 headers=headers, timeout=2)
                         print(response.text)
                     except Timeout:
                         del self.config['machines_info'][data]
@@ -349,18 +353,20 @@ class ChessClient:
                             if "info" and "nodes" in message:
                                 message = message.split()
                                 self.nodes_searched[socket] = int(message[message.index("nodes") + 1])
-                                self.nodes_searched[socket] = int(message[message.index("nps") + 1])
-                                mvv = message[19]
-                                cpp = int(message[9])
+                                self.nds_per_sec[socket] = int(message[message.index("nps") + 1])
+                                mvv = message[message.index("pv") + 1::]
+                                cpp = int(message[message.index("cp") + 1])
+                                dpth = int(message[message.index("depth") + 1])
 
-                                if self.info["move"] == mvv or self.info["cp"] is None or self.info["cp"] < cpp:# todo more consistent output
+                                if self.info["move"] == mvv or self.info["cp"] is None or self.info["cp"] < cpp or (self.info["depth"] + 4) < dpth:  # todo more consistent output
                                     self.info["cp"] = cpp
                                     self.info["move"] = mvv
+                                    self.info["depth"] = dpth
 
-                                    message[9] = str(cpp)
-                                    message[11] = str(sum(self.nodes_searched.values()))
-                                    message[13] = str(sum(self.nds_per_sec.values()))
-                                    message[19] = mvv
+                                    message[message.index("cp") + 1] = str(cpp)
+                                    message[message.index("nodes") + 1] = str(sum(self.nodes_searched.values()))
+                                    message[message.index("nps") + 1] = str(sum(self.nds_per_sec.values()))
+                                    message[message.index("pv") + 1::] = mvv
 
                                     print(" ".join(message))
                                     sys.stdout.flush()
@@ -475,7 +481,8 @@ class ChessClient:
         self.time = time.time()
         leave, moves = self.get_best_moves()
         if leave:
-            return #todo finish
+            self.stop = False
+            return  # todo finish
         top_moves = {}
         off_time = int(time.time() - self.time) * 1000
         if "time" in go:
@@ -485,7 +492,7 @@ class ChessClient:
             if "wtime" in go:
                 splt[splt.index("wtime") + 1] = str(int(splt[splt.index("wtime") + 1]) - off_time)
             if "movetime" in go:
-                splt[splt.index("movetime") + 1] = str(int(splt[splt.index("movetime") + 1]) - off_time//1000)
+                splt[splt.index("movetime") + 1] = str(int(splt[splt.index("movetime") + 1]) - off_time // 1000)
 
             go = " ".join(splt)
 
@@ -493,6 +500,7 @@ class ChessClient:
 
         self.parallelize(moves, top_moves, go_options)
         self.stop = False
+        self.reset_init()
         out = {}
         for move in top_moves.keys():
             move_sp = move.split()

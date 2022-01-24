@@ -36,7 +36,7 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
 
         options = []
         while True:
-            print(f"PASSED??? {chess_client.input_passed}")
+            # print(f"PASSED??? {chess_client.input_passed}")
             if chess_client.input_passed is None:
                 chess_client.inpt = input()
                 print(f"INPUT === {chess_client.inpt}")
@@ -75,6 +75,10 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
                 t1.join()
                 t2.join(1)  # todo does it always work?
                 print('TIMEOUT?')
+            elif 'quit' in chess_client.inpt: #todo quit error {"timestamp":"2022-01-24T23:43:28.834+00:00","status":415,"error":"Unsupported Media Type","path":"/server/stop-engine"}
+                chess_client.stop = True
+                chess_client.leave = True
+                chess_client.input_passed = True
 
             if chess_client.leave is True:
                 break
