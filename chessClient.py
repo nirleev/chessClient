@@ -26,11 +26,16 @@ class ChessClient:
         self.input_passed = None
         self.inpt = ""
         self.leave = False
+        self.debug = False # todo to config
 
     def reset_init(self):
         self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}
         self.nds_per_sec = {s: 0 for s in self.config["socket_ips"]}
         self.info = {"cp": None, "move": None, "depth" : 0}
+
+    def log(self, message):
+        if self.debug:
+            print(message)
 
     ''' USER METHODS '''
 
@@ -46,7 +51,8 @@ class ChessClient:
 
                 url = f"{self.config['uciServer']}/user/add"
                 response = requests.post(url, data=json.dumps(data), headers=headers)
-                print(response.text)
+                # print(response.text)
+                self.log(response.text)
         except KeyError:
             print("Key error")
         except requests.exceptions.ConnectionError:
@@ -78,7 +84,8 @@ class ChessClient:
         try:
             url = f"{self.config['uciServer']}/user/logout"
             response = requests.post(url, headers=headers)
-            print(response.text)
+            # print(response.text)
+            self.log(response.text)
         except KeyError:
             print("Key error")
         except requests.exceptions.ConnectionError:
@@ -94,7 +101,8 @@ class ChessClient:
                 url = f"{self.config['uciServer']}/engine/add"
                 for data in self.config['engines']:
                     response = requests.post(url, data=json.dumps(data), headers=headers)
-                    print(response.text)
+                    # print(response.text)
+                    self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -109,7 +117,8 @@ class ChessClient:
             try:
                 url = f"{self.config['uciServer']}/engine/available"
                 response = requests.get(url, headers=headers)
-                print(response.text)
+                # print(response.text)
+                self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -125,7 +134,8 @@ class ChessClient:
                 url = f"{self.config['uciServer']}/engine/send"
                 for command in self.config['commands']:
                     response = requests.post(url, data=command, headers=headers)
-                    print(response.text)
+                    # print(response.text)
+                    self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -143,7 +153,8 @@ class ChessClient:
                 }
                 url = f"{self.config['uciServer']}/engine/start"
                 response = requests.post(url, data=json.dumps(data), headers=headers)
-                print(response.text)
+                # print(response.text)
+                self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -158,7 +169,8 @@ class ChessClient:
             try:
                 url = f"{self.config['uciServer']}/engine/stop"
                 response = requests.post(url, headers=headers)
-                print(response.text)
+                # print(response.text)
+                self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -178,7 +190,8 @@ class ChessClient:
                     try:
                         response = requests.post(url, data=json.dumps(data),
                                                  headers=headers, timeout=2)
-                        print(response.text)
+                        # print(response.text)
+                        self.log(response.text)
                     except Timeout:
                         del self.config['machines_info'][data]
 
@@ -196,7 +209,8 @@ class ChessClient:
             try:
                 url = f"{self.config['uciServer']}/server/all"
                 response = requests.get(url, headers=headers)
-                print(response.text)
+                # print(response.text)
+                self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -212,7 +226,8 @@ class ChessClient:
                 url = f"{self.config['uciServer']}/server/command"
                 for command in self.config['commands_servers']:
                     response = requests.post(url, data=command, headers=headers)
-                    print(response.text)
+                    # print(response.text)
+                    self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -228,7 +243,8 @@ class ChessClient:
                 url = f"{self.config['uciServer']}/server/command-engine"
                 for command in self.config['commands_engines']:
                     response = requests.post(url, data=command, headers=headers)
-                    print(response.text)
+                    # print(response.text)
+                    self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -244,7 +260,8 @@ class ChessClient:
                 url = f"{self.config['uciServer']}/server/delete"
                 for data in self.config['delete_machines']:
                     response = requests.post(url, data=data['name'], headers=headers)
-                    print(response.text)
+                    # print(response.text)
+                    self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -259,7 +276,8 @@ class ChessClient:
             try:
                 url = f"{self.config['uciServer']}/server/heartbeat"
                 response = requests.get(url, headers=headers)
-                print(response.text)
+                # print(response.text)
+                self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -280,7 +298,8 @@ class ChessClient:
 
                     url = f"{self.config['uciServer']}/server/start-engine"
                     response = requests.post(url, data=json.dumps(data), headers=headers)
-                    print(response.text)
+                    # print(response.text)
+                    self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -296,7 +315,8 @@ class ChessClient:
                 for info in self.config['machines_info']:
                     url = f"{self.config['uciServer']}/server/stop-engine"
                     response = requests.post(url, data=info["name"], headers=headers)
-                    print(response.text)
+                    # print(response.text)
+                    self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
@@ -368,7 +388,7 @@ class ChessClient:
                                     message[message.index("nps") + 1] = str(sum(self.nds_per_sec.values()))
                                     message[message.index("pv") + 1::] = mvv
 
-                                    print(" ".join(message))
+                                    print(" ".join(message)) # todo last info same as bestmove??
                                     sys.stdout.flush()
 
 

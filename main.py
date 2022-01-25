@@ -39,7 +39,7 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
             # print(f"PASSED??? {chess_client.input_passed}")
             if chess_client.input_passed is None:
                 chess_client.inpt = input()
-                print(f"INPUT === {chess_client.inpt}")
+                chess_client.log(f"INPUT === {chess_client.inpt}")
             elif chess_client.input_passed is False:
                 chess_client.inpt = ""
             elif chess_client.input_passed is True:
@@ -62,7 +62,7 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
                 pass
             elif 'position' in chess_client.inpt:
                 chess_client.config['start_pos'] = " ".join(chess_client.inpt.split()[3:])
-                print(f"POSITION ===== {chess_client.config['start_pos']}")
+                chess_client.log(f"POSITION ===== {chess_client.config['start_pos']}")
             elif 'go' in chess_client.inpt:
                 chess_client.setup_engines(options)
                 t1 = threading.Thread(target=chess_client.best_move, args=(chess_client.inpt,))
@@ -74,7 +74,6 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
 
                 t1.join()
                 t2.join(1)  # todo does it always work?
-                print('TIMEOUT?')
             elif 'quit' in chess_client.inpt: #todo quit error {"timestamp":"2022-01-24T23:43:28.834+00:00","status":415,"error":"Unsupported Media Type","path":"/server/stop-engine"}
                 chess_client.stop = True
                 chess_client.leave = True
@@ -82,7 +81,7 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
 
             if chess_client.leave is True:
                 break
-            # print("LOOP DONE")
+            chess_client.log("LOOP DONE")
             sys.stdout.flush()
 
         chess_client.stop_chess_servers_engines()
