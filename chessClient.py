@@ -8,13 +8,18 @@ import json
 import asyncio
 from websockets import connect
 import time
+import logging
 
 
 class ChessClient:
     def __init__(self):
+        logging.debug("Init...")
         configuration = Configuration()
+        logging.debug("Configuration object created!")
         configuration.read_config()
+        logging.debug("Config read!")
         self.config = configuration.get_config()
+        logging.debug("Config in a field!")
         self.token = None
         self.main_server = None
         self.stop = False
@@ -27,6 +32,7 @@ class ChessClient:
         self.inpt = ""
         self.leave = False
         self.debug = False # todo to config
+        logging.debug("Innit finished!")
 
     def reset_init(self):
         self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}

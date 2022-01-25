@@ -1,22 +1,33 @@
-import sys
+import logging
+logging.basicConfig(filename="mylog.log", level=logging.DEBUG)
+logging.debug("Importing...")
 
+
+
+import sys
 from chessClient import *
 import threading
 
-
+logging.debug("Creating Chess Client...")
 chess_client = ChessClient()
-
+logging.debug("Chess Client created!")
 
 def run():
     print("Parallel Uci engine")
+    logging.debug("Parallel Uci engine")
     sys.stdout.flush()
 
     if chess_client.login() is None:
         print("Invalid credentials")
+        logging.debug("Invalid credentials")
+
     else:
         chess_client.add_chess_servers()
+        logging.debug("Adding servers...")
         chess_client.available_servers()
+        logging.debug("checking servers' availability...")
         chess_client.start_chess_servers_engines()
+        logging.debug("Starting servers...")
         uci_response = """id name Parallel
 id author :)
 
@@ -45,11 +56,14 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
             # print(f"PASSED??? {chess_client.input_passed}")
             if chess_client.input_passed is None:
                 chess_client.inpt = input()
+                logging.debug(f"INPUT === {chess_client.inpt}")
                 chess_client.log(f"INPUT === {chess_client.inpt}")
             elif chess_client.input_passed is False:
                 chess_client.inpt = ""
             elif chess_client.input_passed is True:
                 chess_client.input_passed = None
+
+
 
             # print(f"PASSED??? {chess_client.input_passed}")
             # chess_client.input_passed = False
@@ -57,6 +71,7 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
             # print('XXDD')
             if 'uci' == chess_client.inpt:
                 print(uci_response)  # todo implement response
+                logging.debug(uci_response)
             elif 'isready' in chess_client.inpt:
                 print('readyok')
             elif 'setoption' and 'MultiPV' in chess_client.inpt:
@@ -79,7 +94,7 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
                 t2.start()
 
                 t1.join()
-                t2.join(1)  # todo does it always work?
+                t2.join()  # todo does it always work?
             elif 'quit' in chess_client.inpt: #todo quit error {"timestamp":"2022-01-24T23:43:28.834+00:00","status":415,"error":"Unsupported Media Type","path":"/server/stop-engine"}
                 chess_client.stop = True
                 chess_client.leave = True
@@ -101,6 +116,7 @@ def stop():
     while True:
         chess_client.inpt = input()  # todo log this input
         print(f"INPUT2 === {chess_client.inpt}")
+        logging.debug(f"INPUT2 === {chess_client.inpt}")
         if 'stop' in chess_client.inpt:
             chess_client.stop = True  # todo what if stop while calculating initial positions
             chess_client.leave = False
