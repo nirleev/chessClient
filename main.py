@@ -8,13 +8,19 @@ chess_client = ChessClient()
 
 
 def run():
+    print("Parallel Uci engine")
+    sys.stdout.flush()
+
     if chess_client.login() is None:
         print("Invalid credentials")
     else:
         chess_client.add_chess_servers()
         chess_client.available_servers()
         chess_client.start_chess_servers_engines()
-        uci_response = """option name Debug Log File type string default
+        uci_response = """id name Parallel
+id author :)
+
+option name Debug Log File type string default
 option name Threads type spin default 1 min 1 max 512
 option name Hash type spin default 16 min 1 max 33554432
 option name Clear Hash type button
