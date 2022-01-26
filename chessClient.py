@@ -25,19 +25,19 @@ class ChessClient:
         self.stop = False
         self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}
         self.nds_per_sec = {s: 0 for s in self.config["socket_ips"]}
-        self.info = {"cp": None, "move": None, "depth" : 0}
+        self.info = {"cp": None, "move": None, "depth": 0, "socket": ""}
         self.time = time.time()
         self.finished = False
         self.input_passed = None
         self.inpt = ""
         self.leave = False
-        self.debug = False # todo to config
+        self.debug = False  # todo to config
         logging.debug("Innit finished!")
 
     def reset_init(self):
         self.nodes_searched = {s: 0 for s in self.config["socket_ips"]}
         self.nds_per_sec = {s: 0 for s in self.config["socket_ips"]}
-        self.info = {"cp": None, "move": None, "depth" : 0}
+        self.info = {"cp": None, "move": None, "depth": 0, "socket": ""}
 
     def log(self, message):
         if self.debug:
@@ -384,17 +384,19 @@ class ChessClient:
                                 cpp = int(message[message.index("cp") + 1])
                                 dpth = int(message[message.index("depth") + 1])
 
-                                if self.info["move"] == mvv or self.info["cp"] is None or self.info["cp"] < cpp or (self.info["depth"] + 4) < dpth:  # todo more consistent output
+                                if self.info["move"] == mvv or self.info["cp"] is None or self.info["cp"] < cpp or \
+                                        self.info["socket"] == socket:  # todo more consistent output
                                     self.info["cp"] = cpp
                                     self.info["move"] = mvv
                                     self.info["depth"] = dpth
+                                    self.info["socket"] = socket
 
                                     message[message.index("cp") + 1] = str(cpp)
                                     message[message.index("nodes") + 1] = str(sum(self.nodes_searched.values()))
                                     message[message.index("nps") + 1] = str(sum(self.nds_per_sec.values()))
                                     message[message.index("pv") + 1::] = mvv
 
-                                    print(" ".join(message)) # todo last info same as bestmove??
+                                    print(" ".join(message))  # todo last info same as bestmove??
                                     sys.stdout.flush()
 
 
@@ -426,7 +428,7 @@ class ChessClient:
     def parallelize(self, moves, top_moves, go_options):
         asyncio.run(self.distribute_processing(moves, top_moves, go_options))
 
-    async def get_moves(self):
+    async def get_moves(self, go):
         if self.main_server is None:
             self.main_server = self.config['socket_ips'][0]
         if self.token is not None:
@@ -457,7 +459,31 @@ class ChessClient:
                             break
 
                     await websocket.send(f"position startpos moves {self.config['start_pos']}")
-                    await websocket.send("go depth 10")  # todo
+                    splt = go.split()
+                    n_moves = len(self.config['start_pos'].split()) % 2
+                    if "btime" in go and n_moves == 1:  # todo ładniej to COŚ TU MOŻE N IE? DZIALAć???
+                        tim = int(splt[splt.index("btime") + 1])
+                        if tim < 10000:
+                            await websocket.send(f"go movetime {tim // 20} depth 10")
+                        elif tim < 20000:
+                            await websocket.send(f"go movetime {tim // 10} depth 10")
+                        elif tim < 40000:
+                            await websocket.send(f"go movetime {tim // 5} depth 10")
+                        else:
+                            await websocket.send(f"go movetime 10000 depth 10")
+                    elif "wtime" in go and n_moves == 0:
+                        tim = int(splt[splt.index("witme") + 1])
+                        if tim < 10000:
+                            await websocket.send(f"go movetime {tim // 20} depth 10")
+                        elif tim < 20000:
+                            await websocket.send(f"go movetime {tim // 10} depth 10")
+                        elif tim < 40000:
+                            await websocket.send(f"go movetime {tim // 5} depth 10")
+                        else:
+                            await websocket.send(f"go movetime 10000 depth 10")
+                    else:
+                        await websocket.send(
+                            "go depth 10")  # todo do config | ogranczona ilość ruchów co wtedy??, to głębsze rozbicie BRUH
 
                     info = []
                     while True:
@@ -484,8 +510,8 @@ class ChessClient:
             print("Token is None")
 
     # get a list of all possible moves in this position (centi-pawn range from best to worst within 100)
-    def get_best_moves(self):
-        leave, strings = asyncio.run(self.get_moves())
+    def get_best_moves(self,go):
+        leave, strings = asyncio.run(self.get_moves(go))
         if leave:
             return True, ""
         moves_cps = {}
@@ -505,24 +531,43 @@ class ChessClient:
 
     def best_move(self, go):
         self.time = time.time()
-        leave, moves = self.get_best_moves()
+        leave, moves = self.get_best_moves(go)
         if leave:
             self.stop = False
             return  # todo finish
         top_moves = {}
         off_time = int(time.time() - self.time) * 1000
+
+        times = []
         if "time" in go:
             splt = go.split()
-            if "btime" in go:  # todo ładniej to
+            if "btime" in go:  # todo ładniej to COŚ TU MOŻE N IE? DZIALAć???
                 splt[splt.index("btime") + 1] = str(int(splt[splt.index("btime") + 1]) - off_time)
+                times.append(int(splt[splt.index("btime") + 1]))
             if "wtime" in go:
                 splt[splt.index("wtime") + 1] = str(int(splt[splt.index("wtime") + 1]) - off_time)
+                times.append(int(splt[splt.index("btime") + 1]))
             if "movetime" in go:
-                splt[splt.index("movetime") + 1] = str(int(splt[splt.index("movetime") + 1]) - off_time // 1000)
+                splt[splt.index("movetime") + 1] = str(int(splt[splt.index("movetime") + 1]) - off_time)
 
             go = " ".join(splt)
 
         go_options = go[3:]
+
+        # time thresholds for moves in a real game
+        try:
+            for tim in times:
+                if tim < 30000:
+                    break
+            for tim in times:  # todo suboptimal
+                if tim < 60000:
+                    go_options = "depth 40 movetime 7000"
+                elif tim < 120000:
+                    go_options = "depth 50 movetime 15000"
+                elif tim >= 120000:
+                    go_options = "depth 1000 movetime 30000"
+        except:
+            pass
 
         self.parallelize(moves, top_moves, go_options)
         self.stop = False
@@ -547,12 +592,6 @@ class ChessClient:
             try:
                 async with connect(socket,
                                    extra_headers={"Authorization": f"Bearer {self.token}"}) as websocket:
-                    # await websocket.send("uci")
-                    # while True:
-                    #     message = await websocket.recv()
-                    #     print(message)
-                    #     if message == 'uciok':
-                    #         break
                     if options != []:
                         for option in options:
                             await websocket.send(option)

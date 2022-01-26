@@ -1,8 +1,10 @@
 import logging
-logging.basicConfig(filename="mylog.log", level=logging.DEBUG)
+
+logging.basicConfig(filename="mylog.log", level=logging.DEBUG, format="%(asctime)s;%(levelname)s;%(message)s",
+                    datefmt="%Y-%m-%d %H:%M:%S")
+
+
 logging.debug("Importing...")
-
-
 
 import sys
 from chessClient import *
@@ -11,6 +13,7 @@ import threading
 logging.debug("Creating Chess Client...")
 chess_client = ChessClient()
 logging.debug("Chess Client created!")
+
 
 def run():
     print("Parallel Uci engine")
@@ -49,7 +52,7 @@ option name SyzygyProbeDepth type spin default 1 min 1 max 100
 option name Syzygy50MoveRule type check default true
 option name SyzygyProbeLimit type spin default 7 min 0 max 7
 option name Use NNUE type check default true
-option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to config?
+uciok"""  # todo to config?
 
         options = []
         while True:
@@ -62,8 +65,6 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
                 chess_client.inpt = ""
             elif chess_client.input_passed is True:
                 chess_client.input_passed = None
-
-
 
             # print(f"PASSED??? {chess_client.input_passed}")
             # chess_client.input_passed = False
@@ -78,6 +79,7 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
                 pass
             elif 'setoption' in chess_client.inpt:
                 options.append(chess_client.inpt)
+                chess_client.setup_engines(options)  # todo opcje osobno
             # ignoring MultiPV for now
             elif 'ucinewgame' in chess_client.inpt:
                 pass
@@ -85,17 +87,15 @@ option name EvalFile type string default nn-3475407dc199.nnue"""  # todo to conf
                 chess_client.config['start_pos'] = " ".join(chess_client.inpt.split()[3:])
                 chess_client.log(f"POSITION ===== {chess_client.config['start_pos']}")
             elif 'go' in chess_client.inpt:
-                chess_client.setup_engines(options)
                 t1 = threading.Thread(target=chess_client.best_move, args=(chess_client.inpt,))
                 t2 = threading.Thread(target=stop)
-                # chess_client.start_chess_servers_engines()
-                # chess_client.best_move(inpt)
+
                 t1.start()
                 t2.start()
 
                 t1.join()
                 t2.join()  # todo does it always work?
-            elif 'quit' in chess_client.inpt: #todo quit error {"timestamp":"2022-01-24T23:43:28.834+00:00","status":415,"error":"Unsupported Media Type","path":"/server/stop-engine"}
+            elif 'quit' in chess_client.inpt:  # todo quit error {"timestamp":"2022-01-24T23:43:28.834+00:00","status":415,"error":"Unsupported Media Type","path":"/server/stop-engine"}
                 chess_client.stop = True
                 chess_client.leave = True
                 chess_client.input_passed = True
@@ -145,3 +145,5 @@ if __name__ == "__main__":
 # todo get rid of prints from servers? - scid compatibility??
 
 # todo okomentowac kod
+
+# todo jednocześnie depth i movetime jako ograniczenie pojedynczego ruchu????????????????????????
