@@ -556,16 +556,19 @@ class ChessClient:
 
         # time thresholds for moves in a real game
         try:
+            stpp = False
             for tim in times:
                 if tim < 30000:
+                    stpp = True
                     break
-            for tim in times:  # todo suboptimal
-                if tim < 60000:
-                    go_options = "depth 40 movetime 7000"
-                elif tim < 120000:
-                    go_options = "depth 50 movetime 15000"
-                elif tim >= 120000:
-                    go_options = "depth 1000 movetime 30000"
+            if stpp:
+                for tim in times:  # todo suboptimal
+                    if tim < 60000:
+                        go_options = "depth 40 movetime 7000"
+                    elif tim < 120000:
+                        go_options = "depth 50 movetime 15000"
+                    elif tim >= 120000:
+                        go_options = "depth 1000 movetime 30000"
         except:
             pass
 
