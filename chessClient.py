@@ -472,7 +472,7 @@ class ChessClient:
                         else:
                             await websocket.send(f"go movetime 10000 depth 10")
                     elif "wtime" in go and n_moves == 0:
-                        tim = int(splt[splt.index("witme") + 1])
+                        tim = int(splt[splt.index("wtime") + 1])
                         if tim < 10000:
                             await websocket.send(f"go movetime {tim // 20} depth 10")
                         elif tim < 20000:
