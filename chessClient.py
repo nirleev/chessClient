@@ -381,11 +381,10 @@ class ChessClient:
                                 self.nodes_searched[socket] = int(message[message.index("nodes") + 1])
                                 self.nds_per_sec[socket] = int(message[message.index("nps") + 1])
                                 mvv = message[message.index("pv") + 1::]
-                                cpp = int(message[message.index("cp") + 1])
                                 dpth = int(message[message.index("depth") + 1])
 
                                 if "mate" in message and int(message[message.index("mate") + 1]) < 0:
-                                    pass
+                                    continue
                                 elif "mate" in message and int(message[message.index("mate") + 1]) >= 0:
                                     self.info["move"] = mvv
                                     self.info["depth"] = dpth
@@ -399,7 +398,8 @@ class ChessClient:
                                     print(" ".join(message))  # todo last info same as bestmove??
                                     sys.stdout.flush()
 
-                                elif self.info["move"] == mvv or self.info["cp"] is None or self.info["cp"] < cpp or \
+                                cpp = int(message[message.index("cp") + 1])
+                                if self.info["move"] == mvv or self.info["cp"] is None or self.info["cp"] < cpp or \
                                         self.info["socket"] == socket:  # todo more consistent output
                                     self.info["cp"] = cpp
                                     self.info["move"] = mvv
