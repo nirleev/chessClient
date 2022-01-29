@@ -384,7 +384,22 @@ class ChessClient:
                                 cpp = int(message[message.index("cp") + 1])
                                 dpth = int(message[message.index("depth") + 1])
 
-                                if self.info["move"] == mvv or self.info["cp"] is None or self.info["cp"] < cpp or \
+                                if "mate" in message and int(message[message.index("mate") + 1]) < 0:
+                                    pass
+                                elif "mate" in message and int(message[message.index("mate") + 1]) >= 0:
+                                    self.info["move"] = mvv
+                                    self.info["depth"] = dpth
+                                    self.info["socket"] = socket
+                                    self.info["cp"] = 10000
+
+                                    message[message.index("nodes") + 1] = str(sum(self.nodes_searched.values()))
+                                    message[message.index("nps") + 1] = str(sum(self.nds_per_sec.values()))
+                                    message[message.index("pv") + 1::] = mvv
+
+                                    print(" ".join(message))  # todo last info same as bestmove??
+                                    sys.stdout.flush()
+
+                                elif self.info["move"] == mvv or self.info["cp"] is None or self.info["cp"] < cpp or \
                                         self.info["socket"] == socket:  # todo more consistent output
                                     self.info["cp"] = cpp
                                     self.info["move"] = mvv
@@ -464,23 +479,23 @@ class ChessClient:
                     if "btime" in go and n_moves == 1:  # todo ładniej to COŚ TU MOŻE N IE? DZIALAć???
                         tim = int(splt[splt.index("btime") + 1])
                         if tim < 10000:
-                            await websocket.send(f"go movetime {tim // 20} depth 10")
+                            await websocket.send(f"go btime {tim // 4} depth 2")
                         elif tim < 20000:
-                            await websocket.send(f"go movetime {tim // 10} depth 10")
-                        elif tim < 40000:
-                            await websocket.send(f"go movetime {tim // 5} depth 10")
+                            await websocket.send(f"go movetime {tim // 80} depth 3")
+                        elif tim < 60000:
+                            await websocket.send(f"go movetime {tim // 40} depth 5")
                         else:
-                            await websocket.send(f"go movetime 10000 depth 10")
+                            await websocket.send(f"go movetime 10000 depth 8")
                     elif "wtime" in go and n_moves == 0:
                         tim = int(splt[splt.index("wtime") + 1])
                         if tim < 10000:
-                            await websocket.send(f"go movetime {tim // 20} depth 10")
+                            await websocket.send(f"go wtime {tim // 4} depth 2")
                         elif tim < 20000:
-                            await websocket.send(f"go movetime {tim // 10} depth 10")
-                        elif tim < 40000:
-                            await websocket.send(f"go movetime {tim // 5} depth 10")
+                            await websocket.send(f"go movetime {tim // 80} depth 3")
+                        elif tim < 60000:
+                            await websocket.send(f"go movetime {tim // 40} depth 5")
                         else:
-                            await websocket.send(f"go movetime 10000 depth 10")
+                            await websocket.send(f"go movetime 10000 depth 8")
                     else:
                         await websocket.send(
                             "go depth 10")  # todo do config | ogranczona ilość ruchów co wtedy??, to głębsze rozbicie BRUH
@@ -538,15 +553,15 @@ class ChessClient:
         top_moves = {}
         off_time = int(time.time() - self.time) * 1000
 
-        times = []
+        times = [0, 0]
+        splt = go.split()
         if "time" in go:
-            splt = go.split()
             if "btime" in go:  # todo ładniej to COŚ TU MOŻE N IE? DZIALAć???
                 splt[splt.index("btime") + 1] = str(int(splt[splt.index("btime") + 1]) - off_time)
-                times.append(int(splt[splt.index("btime") + 1]))
+                times[1] = int(splt[splt.index("btime") + 1])
             if "wtime" in go:
                 splt[splt.index("wtime") + 1] = str(int(splt[splt.index("wtime") + 1]) - off_time)
-                times.append(int(splt[splt.index("btime") + 1]))
+                times[0] = int(splt[splt.index("btime") + 1])
             if "movetime" in go:
                 splt[splt.index("movetime") + 1] = str(int(splt[splt.index("movetime") + 1]) - off_time)
 
@@ -556,19 +571,26 @@ class ChessClient:
 
         # time thresholds for moves in a real game
         try:
-            stpp = False
-            for tim in times:
-                if tim < 30000:
-                    stpp = True
-                    break
-            if stpp:
-                for tim in times:  # todo suboptimal
-                    if tim < 60000:
-                        go_options = "depth 40 movetime 7000"
-                    elif tim < 120000:
-                        go_options = "depth 50 movetime 15000"
-                    elif tim >= 120000:
-                        go_options = "depth 1000 movetime 30000"
+            n_moves = len(self.config['start_pos'].split()) % 2
+            nn_moves = len(self.config['start_pos'].split())
+            if "btime" in go and n_moves == 1:
+                tim = times[1]
+            elif "wtime" in go and n_moves == 0:
+                tim = times[0]
+            if tim < 60000:
+                pass
+            elif tim < 90000 or nn_moves < 10:
+                go_options = "depth 40 movetime 7000"
+            elif tim < 120000 or nn_moves < 15:
+                go_options = "depth 50 movetime 15000"
+            elif tim < 240000 or nn_moves < 25:
+                go_options = "depth 60 movetime 30000"
+            elif tim < 480000:
+                go_options = "depth 100 movetime 60000"
+            elif tim < 500000:
+                go_options = "depth 100 movetime 90000"
+            elif tim >= 500000:
+                go_options = "depth 100 movetime 120000"
         except:
             pass
 
