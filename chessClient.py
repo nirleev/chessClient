@@ -397,6 +397,7 @@ class ChessClient:
 
                                     print(" ".join(message))  # todo last info same as bestmove??
                                     sys.stdout.flush()
+                                    continue
 
                                 cpp = int(message[message.index("cp") + 1])
                                 if self.info["move"] == mvv or self.info["cp"] is None or self.info["cp"] < cpp or \
