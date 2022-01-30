@@ -1,0 +1,14 @@
+{
+    "login": "test",
+    "password": "test",
+    "uciServer": "http://IP:port",
+    "machines_info": [
+        {
+            "name": "name",
+            "url": "http://IP:port"
+        }],
+    "socket_ips": ["ws://IP:port/ws_engine"],
+    "engine": "Stockfish",
+    "movesNum": X,
+    "start_pos": "X"
+}

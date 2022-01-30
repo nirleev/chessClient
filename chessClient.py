@@ -132,58 +132,6 @@ class ChessClient:
         else:
             print("Token is None")
 
-    # POST /engine/send
-    def send_command_to_engine(self):
-        if self.token is not None:
-            headers = {'Authorization': f'Bearer {self.token}'}
-            try:
-                url = f"{self.config['uciServer']}/engine/send"
-                for command in self.config['commands']:
-                    response = requests.post(url, data=command, headers=headers)
-                    # print(response.text)
-                    self.log(response.text)
-            except KeyError:
-                print("Key error")
-            except requests.exceptions.ConnectionError:
-                print("Connection error")
-        else:
-            print("Token is None")
-
-    # POST /engine/start
-    def start_uci_server_engine(self):
-        if self.token is not None:
-            headers = {'Authorization': f'Bearer {self.token}', 'Content-type': 'application/json'}
-            try:
-                data = {
-                    'name': self.config['engine']
-                }
-                url = f"{self.config['uciServer']}/engine/start"
-                response = requests.post(url, data=json.dumps(data), headers=headers)
-                # print(response.text)
-                self.log(response.text)
-            except KeyError:
-                print("Key error")
-            except requests.exceptions.ConnectionError:
-                print("Connection error")
-        else:
-            print("Token is None")
-
-    # POST /engine/stop
-    def stop_uci_server_engine(self):
-        if self.token is not None:
-            headers = {'Authorization': f'Bearer {self.token}', 'Content-type': 'application/json'}
-            try:
-                url = f"{self.config['uciServer']}/engine/stop"
-                response = requests.post(url, headers=headers)
-                # print(response.text)
-                self.log(response.text)
-            except KeyError:
-                print("Key error")
-            except requests.exceptions.ConnectionError:
-                print("Connection error")
-        else:
-            print("Token is None")
-
     ''' SERVER METHODS '''
 
     # POST /server/add (adds all Chess Servers from config)
@@ -217,40 +165,6 @@ class ChessClient:
                 response = requests.get(url, headers=headers)
                 # print(response.text)
                 self.log(response.text)
-            except KeyError:
-                print("Key error")
-            except requests.exceptions.ConnectionError:
-                print("Connection error")
-        else:
-            print("Token is None")
-
-    # POST /server/command
-    def send_command_to_servers(self):
-        if self.token is not None:
-            headers = {'Authorization': f'Bearer {self.token}'}
-            try:
-                url = f"{self.config['uciServer']}/server/command"
-                for command in self.config['commands_servers']:
-                    response = requests.post(url, data=command, headers=headers)
-                    # print(response.text)
-                    self.log(response.text)
-            except KeyError:
-                print("Key error")
-            except requests.exceptions.ConnectionError:
-                print("Connection error")
-        else:
-            print("Token is None")
-
-    # POST /server/command-engine
-    def send_command_to_engine_on_servers(self):
-        if self.token is not None:
-            headers = {'Authorization': f'Bearer {self.token}'}
-            try:
-                url = f"{self.config['uciServer']}/server/command-engine"
-                for command in self.config['commands_engines']:
-                    response = requests.post(url, data=command, headers=headers)
-                    # print(response.text)
-                    self.log(response.text)
             except KeyError:
                 print("Key error")
             except requests.exceptions.ConnectionError:
