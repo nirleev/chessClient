@@ -5,6 +5,10 @@
 * Wartość zmiennej środowiskowej `JAVA_HOME` odpowiada lokalizacji pakietu JDK
 
 ## Budowanie aplikacji uciServer i chessServer
+Komponenty:
+https://github.com/nirleev/uciServer
+https://github.com/nirleev/chessServer
+
 Aplikację można zbudować za pomocą jednego z poniższych poleceń:
 * `./gradlew build` - aplikacja zostanie zbudowana, zostanie utworzony plik jar o nazwie `uciServer.jar` lub `chessServer.jar` w katalogu `./build/libs`
 * `./gradlew bootRun` - aplikacja zostanie zbudowana, a następnie uruchomiona na domyślnym porcie 8080
