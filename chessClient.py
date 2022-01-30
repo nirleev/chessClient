@@ -451,12 +451,6 @@ class ChessClient:
             try:
                 async with connect(self.main_server,
                                    extra_headers={"Authorization": f"Bearer {self.token}"}) as websocket:
-                    # await websocket.send("uci")
-                    # while True:
-                    #     message = await websocket.recv()
-                    #     print(message)
-                    #     if message == 'uciok':
-                    #         break
 
                     await websocket.send(f"setoption name MultiPV value {self.config['movesNum']}")
                     await websocket.send("isready")
@@ -477,7 +471,7 @@ class ChessClient:
                     await websocket.send(f"position startpos moves {self.config['start_pos']}")
                     splt = go.split()
                     n_moves = len(self.config['start_pos'].split()) % 2
-                    if "btime" in go and n_moves == 1:  # todo ładniej to COŚ TU MOŻE N IE? DZIALAć???
+                    if "btime" in go and n_moves == 1:
                         tim = int(splt[splt.index("btime") + 1])
                         if tim < 10000:
                             await websocket.send(f"go btime {tim // 4} depth 2")
@@ -499,16 +493,15 @@ class ChessClient:
                             await websocket.send(f"go movetime 10000 depth 8")
                     else:
                         await websocket.send(
-                            "go depth 10")  # todo do config | ogranczona ilość ruchów co wtedy??, to głębsze rozbicie BRUH
+                            "go depth 10")
 
                     info = []
                     while True:
                         await websocket.recv()
                         async for message in websocket:
                             info.append(message)
-                            if time.time() - self.time > 15 or self.stop is True:  # todo to confi?
+                            if time.time() - self.time > 15 or self.stop is True:
                                 await websocket.send("stop")
-                            # print(message)
                             if 'bestmove' in message:
 
                                 multipv = info[-2].split()[info[-2].split().index("multipv") + 1]
@@ -550,14 +543,14 @@ class ChessClient:
         leave, moves = self.get_best_moves(go)
         if leave:
             self.stop = False
-            return  # todo finish
+            return
         top_moves = {}
         off_time = int(time.time() - self.time) * 1000
 
         times = [0, 0]
         splt = go.split()
         if "time" in go:
-            if "btime" in go:  # todo ładniej to COŚ TU MOŻE N IE? DZIALAć???
+            if "btime" in go:
                 splt[splt.index("btime") + 1] = str(int(splt[splt.index("btime") + 1]) - off_time)
                 times[1] = int(splt[splt.index("btime") + 1])
             if "wtime" in go:
@@ -608,10 +601,8 @@ class ChessClient:
         out = sorted(out.items(), key=lambda x: int(x[1][0]), reverse=True)
         self.main_server = out[0][1][1]
         self.finished = True
-        print(f"bestmove {out[0][0]} ponder ")  # todo
+        print(f"bestmove {out[0][0]} ponder ")
         sys.stdout.flush()
-        # print(f"{sum(self.nodes_searched.values())} nodes searched")
-        # print(out[0][1][2])
 
     async def setup_engine(self, socket, options):
         if self.token is not None:

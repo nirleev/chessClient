@@ -52,11 +52,10 @@ option name SyzygyProbeDepth type spin default 1 min 1 max 100
 option name Syzygy50MoveRule type check default true
 option name SyzygyProbeLimit type spin default 7 min 0 max 7
 option name Use NNUE type check default true
-uciok"""  # todo to config?
+uciok"""
 
         options = []
         while True:
-            # print(f"PASSED??? {chess_client.input_passed}")
             if chess_client.input_passed is None:
                 chess_client.inpt = input()
                 logging.debug(f"INPUT === {chess_client.inpt}")
@@ -66,12 +65,8 @@ uciok"""  # todo to config?
             elif chess_client.input_passed is True:
                 chess_client.input_passed = None
 
-            # print(f"PASSED??? {chess_client.input_passed}")
-            # chess_client.input_passed = False
-
-            # print('XXDD')
             if 'uci' == chess_client.inpt:
-                print(uci_response)  # todo implement response
+                print(uci_response)
                 logging.debug(uci_response)
             elif 'isready' in chess_client.inpt:
                 print('readyok')
@@ -79,8 +74,7 @@ uciok"""  # todo to config?
                 pass
             elif 'setoption' in chess_client.inpt:
                 options.append(chess_client.inpt)
-                chess_client.setup_engines(options)  # todo opcje osobno
-            # ignoring MultiPV for now
+                chess_client.setup_engines(options)
             elif 'ucinewgame' in chess_client.inpt:
                 pass
             elif 'position' in chess_client.inpt:
@@ -94,8 +88,8 @@ uciok"""  # todo to config?
                 t2.start()
 
                 t1.join()
-                t2.join()  # todo does it always work?
-            elif 'quit' in chess_client.inpt:  # todo quit error {"timestamp":"2022-01-24T23:43:28.834+00:00","status":415,"error":"Unsupported Media Type","path":"/server/stop-engine"}
+                t2.join()
+            elif 'quit' in chess_client.inpt:
                 chess_client.stop = True
                 chess_client.leave = True
                 chess_client.input_passed = True
@@ -106,7 +100,7 @@ uciok"""  # todo to config?
             sys.stdout.flush()
 
         chess_client.stop_chess_servers_engines()
-        chess_client.delete_chess_servers()  # todo pogadac z natalią o exception przy delete chess_client.delete_chess_servers()?
+        chess_client.delete_chess_servers()
         chess_client.logout()
 
 
@@ -114,11 +108,11 @@ def stop():
     chess_client.finished = False
     chess_client.input_passed = False
     while True:
-        chess_client.inpt = input()  # todo log this input
+        chess_client.inpt = input()
         print(f"INPUT2 === {chess_client.inpt}")
         logging.debug(f"INPUT2 === {chess_client.inpt}")
         if 'stop' in chess_client.inpt:
-            chess_client.stop = True  # todo what if stop while calculating initial positions
+            chess_client.stop = True
             chess_client.leave = False
             chess_client.input_passed = True
             return
@@ -136,14 +130,3 @@ def stop():
 
 if __name__ == "__main__":
     run()
-# todo reset engines when closing the program?
-
-# todo changing options when???
-
-# todo refactor code
-
-# todo get rid of prints from servers? - scid compatibility??
-
-# todo okomentowac kod
-
-# todo jednocześnie depth i movetime jako ograniczenie pojedynczego ruchu????????????????????????
